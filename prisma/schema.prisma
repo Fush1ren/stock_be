@@ -1,0 +1,96 @@
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Roles {
+  superAdmin
+  admin
+  employee
+}
+
+enum StatusProduct {
+  available
+  outOfStock
+}
+
+model users {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  username  String   @unique
+  name      String
+  password  String
+  role      Roles
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  token     String?
+  items     item[]
+  categories category[]
+  stores    stores[]
+  products  products[]
+}
+
+model stores {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String   @unique
+  isMainWarehouse Boolean @default(false)
+  stocks stocks[]
+  userId    String @db.ObjectId
+  user      users @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model products {
+  id       String   @id @default(auto()) @map("_id") @db.ObjectId
+  name     String   @unique
+  description String?
+  unit     String // kg, pcs, liter, dll
+  status   StatusProduct // available, out of stock
+  categoryId String @db.ObjectId
+  category category @relation(fields: [categoryId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  userId   String @db.ObjectId
+  user     users @relation(fields: [userId], references: [id])
+  stocks  stocks[]
+}
+
+model stocks {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  storeId   String   @db.ObjectId
+  productId String   @db.ObjectId
+  quantity  Int
+  updatedAt DateTime @updatedAt
+  store     stores @relation(fields: [storeId], references: [id])
+  product   products @relation(fields: [productId], references: [id])
+
+  @@unique([storeId, productId]) // 1 produk hanya boleh 1 data stok per store
+}
+
+model item {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  description String?
+  stock       Int
+  status      String @default("available") // available, out of stock
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  categoryId  String   @db.ObjectId
+  userId      String @db.ObjectId
+  user        users @relation(fields: [userId], references: [id])
+  category    category @relation(fields: [categoryId], references: [id])
+}
+
+model category {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  userId    String @db.ObjectId
+  user      users @relation(fields: [userId], references: [id])
+  items     item[]
+  products  products[]
+}
