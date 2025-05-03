@@ -2,7 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import { prismaClient } from "../../../config/db";
 import { getUserByToken } from "../../../utils/api.util";
 import { getCategories } from "./category.service";
-import { APIRequestBody } from "../../../dto/api.dto";
+import { QueryParams } from "../../../dto/api.dto";
 
 const createCategory = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -30,10 +30,10 @@ const createCategory = async (req: Request, res: Response, next: NextFunction) =
 const getCategory = async (req: Request, res: Response, next: NextFunction) => {
     try {
         let categories = await getCategories();
-        const body = req.body as APIRequestBody;
-        if (body.page && body.limit) {
-            const startIndex = (body.page - 1) * body.limit;
-            const endIndex = body.page * body.limit;
+        const params = req.params as QueryParams;
+        if (params.page && params.limit) {
+            const startIndex = (params.page - 1) * params.limit;
+            const endIndex = params.page * params.limit;
             const paginatedCategories = categories.slice(startIndex, endIndex);
             categories = paginatedCategories;
         }

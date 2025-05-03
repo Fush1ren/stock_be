@@ -3,7 +3,7 @@ import { BodyCreateUser } from "../../../dto/user.dto";
 import { prismaClient } from "../../../config/db";
 import bcrypt from 'bcryptjs'
 import { getUserData } from "./users.service";
-import { APIRequestBody } from "../../../dto/api.dto";
+import { QueryParams } from "../../../dto/api.dto";
 import { Roles } from "@prisma/client";
 
 const createUser = async (req: Request, res: Response, next: NextFunction) => {
@@ -46,10 +46,10 @@ const createUser = async (req: Request, res: Response, next: NextFunction) => {
 const getUsers = async (req: Request, res: Response, next: NextFunction) => {
     try {
         let users = await getUserData();
-        const body = req.body as APIRequestBody;
-        if (body.page && body.limit) {
-            const startIndex = (body.page - 1) * body.limit;
-            const endIndex = body.page * body.limit;
+        const params = req.params as QueryParams;
+        if (params.page && params.limit) {
+            const startIndex = (params.page - 1) * params.limit;
+            const endIndex = params.page * params.limit;
             const paginatedUsers = users.slice(startIndex, endIndex);
             users = paginatedUsers;
         }
