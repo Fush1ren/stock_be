@@ -9,7 +9,15 @@ type APIDataResponse<T> = {
     data: T;
 }
 
+type APIRequestBody = {
+    [key: string]: any;
+    page?: number;
+    limit?: number;
+    search?: string;
+}
+
 export {
     APIResponse,
     APIDataResponse,
+    APIRequestBody
 }

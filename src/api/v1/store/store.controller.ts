@@ -1,23 +1,20 @@
 import { NextFunction, Request, Response } from "express";
 import { prismaClient } from "../../../config/db";
 import { getUserByToken } from "../../../utils/api.util";
+import { getStores } from "./store.service";
+import { APIRequestBody } from "../../../dto/api.dto";
 
 const createStore = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const token = req.headers['authorization']?.split(' ')[1]
+        const token = req.headers['authorization']?.split(' ')[1];
         if (!req.body) {
             res.status(400).json({ message: "No data provided" });
             return;
         };
 
-        const { name, isMainWarehouse } = req.body;
+        const { name } = req.body;
         if (!name) {
             res.status(400).json({ status: 400, message: "Name is required" });
-            return;
-        }
-
-        if (isMainWarehouse === undefined) {
-            res.status(400).json({ status: 400, message: "isMainWarehouse is required" });
             return;
         }
 
@@ -27,7 +24,6 @@ const createStore = async (req: Request, res: Response, next: NextFunction) => {
         await prismaClient.stores.create({
             data: {
                 name,
-                isMainWarehouse,
                 userId: user?.id as string,
             }
         })
@@ -38,6 +34,26 @@ const createStore = async (req: Request, res: Response, next: NextFunction) => {
     }
 }
 
+const getStore = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        let store = await getStores();
+        const body = req.body as APIRequestBody;
+        if (body.page && body.limit) {
+            const startIndex = (body.page - 1) * body.limit;
+            const endIndex = body.page * body.limit;
+            const paginatedStore = store.slice(startIndex, endIndex);
+            store = paginatedStore;
+        }
+        res.status(200).json({ status: 200, message: 'Successfully Get Store Data!', data: {
+            total: store.length,
+            data: store
+        }});
+    } catch (error) {
+        next(error);
+    }
+}
+
 export {
     createStore,
+    getStore,
 }

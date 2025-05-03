@@ -2,7 +2,7 @@ type BodyCreateUser = {
     username: string;
     name: string;
     password: string;
-    role?: string;
+    role: string;
 }
 
 export {
