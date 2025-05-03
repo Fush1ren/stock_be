@@ -1,6 +1,8 @@
 import { NextFunction, Request, Response } from "express";
 import { prismaClient } from "../../../config/db";
 import { getUserByToken } from "../../../utils/api.util";
+import { getCategories } from "./category.service";
+import { APIRequestBody } from "../../../dto/api.dto";
 
 const createCategory = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -25,15 +27,20 @@ const createCategory = async (req: Request, res: Response, next: NextFunction) =
     }
 }
 
-const getCategoryDropdown = async (_req: Request, res: Response, next: NextFunction) => {
+const getCategory = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const categories = await prismaClient.category.findMany({
-            select: {
-                id: true,
-                name: true,
-            }
-        })
-        res.status(200).json({ status: 200, message: "Category fetched successfully", data: categories });
+        let categories = await getCategories();
+        const body = req.body as APIRequestBody;
+        if (body.page && body.limit) {
+            const startIndex = (body.page - 1) * body.limit;
+            const endIndex = body.page * body.limit;
+            const paginatedCategories = categories.slice(startIndex, endIndex);
+            categories = paginatedCategories;
+        }
+        res.status(200).json({ status: 200, message: "Category fetched successfully", data: {
+            total: categories.length,
+            data: categories
+        }});
         return;
     } catch (error) {
         next(error);
@@ -42,5 +49,5 @@ const getCategoryDropdown = async (_req: Request, res: Response, next: NextFunct
 
 export {
     createCategory,
-    getCategoryDropdown,
+    getCategory,
 }

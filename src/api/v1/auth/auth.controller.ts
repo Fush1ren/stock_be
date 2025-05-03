@@ -3,6 +3,7 @@ import { NextFunction, Request, Response } from "express";
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import config from "../../../config";
+import { BodyUserLogin } from "../../../dto/auth.dto";
 
 const prisma = new PrismaClient()
 
@@ -16,14 +17,27 @@ const generateRefreshToken = (userId: string) => {
 
 const login = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const { username, password } = req.body;
-        const user = await prisma.users.findUnique({ where: { username } })
+        const body = req.body as BodyUserLogin;
+        if (!body) {
+            res.status(400).json({ message: 'No data provided' });
+            return;
+        };
+        if (!body.username) {
+            res.status(400).json({ message: 'Username is required' });
+            return;
+        };
+        if (!body.password) {
+            res.status(400).json({ message: 'Password is required' });
+            return;
+        };
+
+        const user = await prisma.users.findUnique({ where: { username: body.username } })
         if (!user) {
             res.status(404).json({ message: 'User not found' });
             return;
         };
         
-        const isMatch = await bcrypt.compare(password, user.password);
+        const isMatch = await bcrypt.compare(body.password, user.password);
 
         if (!isMatch) {
             res.status(400).json({ message: 'Invalid credentials' });

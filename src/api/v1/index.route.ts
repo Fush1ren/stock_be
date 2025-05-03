@@ -1,9 +1,10 @@
 import { Request, Response, Router } from 'express';
 import authRouter from './auth/auth.route';
 import categoryRouter from './category/category.route';
-import itemRouter from './item/item.route';
 import usersRouter from './users/users.route';
-import storesRouter from './stores/stores.route';
+import storeRouter from './store/store.route';
+import productRouter from './product/product.route';
+import stockRouter from './stock/stock.route';
 
 const apiV1 = Router();
 
@@ -28,12 +29,16 @@ const apiRoutes = [
         route: categoryRouter,
     },
     {
-        path: '/item',
-        route: itemRouter,
+        path: '/store',
+        route: storeRouter,
     },
     {
-        path: '/stores',
-        route: storesRouter,
+        path: '/product',
+        route: productRouter,
+    },
+    {
+        path: '/stock',
+        route: stockRouter,
     }
 ]
 
