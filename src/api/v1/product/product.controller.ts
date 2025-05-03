@@ -4,7 +4,7 @@ import { prismaClient } from "../../../config/db";
 import { StatusProduct } from "@prisma/client";
 import { getUserByToken } from "../../../utils/api.util";
 import { getProducts } from "./product.service";
-import { APIRequestBody } from "src/dto/api.dto";
+import { QueryParams } from "src/dto/api.dto";
 
 const createProduct = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -52,10 +52,10 @@ const createProduct = async (req: Request, res: Response, next: NextFunction) =>
 const getProduct = async (req: Request, res: Response, next: NextFunction) => {
     try {
         let product = await getProducts();
-        const body = req.body as APIRequestBody;
-        if (body.page && body.limit) {
-            const startIndex = (body.page - 1) * body.limit;
-            const endIndex = body.page * body.limit;
+        const params = req.params as QueryParams;
+        if (params.page && params.limit) {
+            const startIndex = (params.page - 1) * params.limit;
+            const endIndex = params.page * params.limit;
             const paginatedProduct = product.slice(startIndex, endIndex);
             product = paginatedProduct;
         }

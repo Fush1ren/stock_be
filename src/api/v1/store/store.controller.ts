@@ -2,7 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import { prismaClient } from "../../../config/db";
 import { getUserByToken } from "../../../utils/api.util";
 import { getStores } from "./store.service";
-import { APIRequestBody } from "../../../dto/api.dto";
+import { QueryParams } from "../../../dto/api.dto";
 
 const createStore = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -37,10 +37,10 @@ const createStore = async (req: Request, res: Response, next: NextFunction) => {
 const getStore = async (req: Request, res: Response, next: NextFunction) => {
     try {
         let store = await getStores();
-        const body = req.body as APIRequestBody;
-        if (body.page && body.limit) {
-            const startIndex = (body.page - 1) * body.limit;
-            const endIndex = body.page * body.limit;
+        const params = req.params as QueryParams;
+        if (params.page && params.limit) {
+            const startIndex = (params.page - 1) * params.limit;
+            const endIndex = params.page * params.limit;
             const paginatedStore = store.slice(startIndex, endIndex);
             store = paginatedStore;
         }

@@ -21,7 +21,7 @@ const apiRoutes = [
         route: authRouter,
     },
     {
-        path: '/users',
+        path: '/user',
         route: usersRouter,
     },
     {
