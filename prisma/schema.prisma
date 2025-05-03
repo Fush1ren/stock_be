@@ -14,6 +14,7 @@ enum Roles {
 }
 
 enum StatusProduct {
+  unavailable
   available
   outOfStock
 }
@@ -27,7 +28,6 @@ model users {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   token     String?
-  items     item[]
   categories category[]
   stores    stores[]
   products  products[]
@@ -36,11 +36,12 @@ model users {
 model stores {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
   name      String   @unique
-  isMainWarehouse Boolean @default(false)
-  stocks stocks[]
+  stocks    stocks[]
   userId    String @db.ObjectId
   user      users @relation(fields: [userId], references: [id])
   createdAt DateTime @default(now())
+
+  stocksOut stocksOut[]
 }
 
 model products {
@@ -48,7 +49,7 @@ model products {
   name     String   @unique
   description String?
   unit     String // kg, pcs, liter, dll
-  status   StatusProduct // available, out of stock
+  status   StatusProduct @default(unavailable) // unavailale, available, out of stock
   categoryId String @db.ObjectId
   category category @relation(fields: [categoryId], references: [id])
   createdAt DateTime @default(now())
@@ -56,6 +57,7 @@ model products {
   userId   String @db.ObjectId
   user     users @relation(fields: [userId], references: [id])
   stocks  stocks[]
+  stocksOut stocksOut[]
 }
 
 model stocks {
@@ -63,6 +65,7 @@ model stocks {
   storeId   String   @db.ObjectId
   productId String   @db.ObjectId
   quantity  Int
+  createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   store     stores @relation(fields: [storeId], references: [id])
   product   products @relation(fields: [productId], references: [id])
@@ -70,18 +73,17 @@ model stocks {
   @@unique([storeId, productId]) // 1 produk hanya boleh 1 data stok per store
 }
 
-model item {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  name        String
+model stocksOut {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
   description String?
-  stock       Int
-  status      String @default("available") // available, out of stock
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  categoryId  String   @db.ObjectId
-  userId      String @db.ObjectId
-  user        users @relation(fields: [userId], references: [id])
-  category    category @relation(fields: [categoryId], references: [id])
+  storeId   String   @db.ObjectId
+  productId String   @db.ObjectId
+  quantity  Int
+  createdAt DateTime @default(now())
+  store     stores @relation(fields: [storeId], references: [id])
+  product   products @relation(fields: [productId], references: [id])
+
+  @@unique([storeId, productId]) // 1 produk hanya boleh 1 data stok per store
 }
 
 model category {
@@ -91,6 +93,5 @@ model category {
   updatedAt DateTime @updatedAt
   userId    String @db.ObjectId
   user      users @relation(fields: [userId], references: [id])
-  items     item[]
   products  products[]
 }
