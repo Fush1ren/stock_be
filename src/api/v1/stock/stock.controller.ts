@@ -56,7 +56,7 @@ const getStockIn = async (req: Request, res: Response, next: NextFunction) => {
             stock = paginatedStock;
         }
         res.status(200).json({ status: 200, message: 'Successfully Get Stock Data!', data: {
-            total: stock.length,
+            totalRecords: stock.length,
             data: stock
         }});
         return;
@@ -116,7 +116,7 @@ const getStockOut = async (req: Request, res: Response, next: NextFunction) => {
             stock = paginatedStock;
         }
         res.status(200).json({ status: 200, message: 'Successfully Get Stock Out Data!', data: {
-            total: stock.length,
+            totalRecords: stock.length,
             data: stock
         }});
         return;

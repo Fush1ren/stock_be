@@ -60,7 +60,7 @@ const getProduct = async (req: Request, res: Response, next: NextFunction) => {
             product = paginatedProduct;
         }
         res.status(200).json({ status: 200, message: 'Successfully Get Product Data!', data: {
-            totalRecord: product.length,
+            totalRecords: product.length,
             data: product
         } });
     } catch (error) {
