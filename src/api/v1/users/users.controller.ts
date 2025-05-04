@@ -54,7 +54,7 @@ const getUsers = async (req: Request, res: Response, next: NextFunction) => {
             users = paginatedUsers;
         }
         res.status(200).json({ status: 200, message: 'Successfully Get Users Data!', data: {
-            total: users.length,
+            totalRecords: users.length,
             data: users
         } });
         return;

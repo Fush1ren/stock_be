@@ -45,7 +45,7 @@ const getStore = async (req: Request, res: Response, next: NextFunction) => {
             store = paginatedStore;
         }
         res.status(200).json({ status: 200, message: 'Successfully Get Store Data!', data: {
-            total: store.length,
+            totalRecords: store.length,
             data: store
         }});
     } catch (error) {

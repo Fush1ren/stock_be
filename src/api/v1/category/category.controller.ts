@@ -38,7 +38,7 @@ const getCategory = async (req: Request, res: Response, next: NextFunction) => {
             categories = paginatedCategories;
         }
         res.status(200).json({ status: 200, message: "Category fetched successfully", data: {
-            total: categories.length,
+            totalRecords: categories.length,
             data: categories
         }});
         return;
