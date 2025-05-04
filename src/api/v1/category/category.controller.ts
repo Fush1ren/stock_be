@@ -3,6 +3,7 @@ import { prismaClient } from "../../../config/db";
 import { getUserByToken } from "../../../utils/api.util";
 import { getCategories } from "./category.service";
 import { QueryParams } from "../../../dto/api.dto";
+import { getUserById } from "../users/users.service";
 
 const createCategory = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -29,23 +30,45 @@ const createCategory = async (req: Request, res: Response, next: NextFunction) =
 
 const getCategory = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        let categories = await getCategories();
-        const params = req.params as QueryParams;
-        if (params.page && params.limit) {
-            const startIndex = (params.page - 1) * params.limit;
-            const endIndex = params.page * params.limit;
-            const paginatedCategories = categories.slice(startIndex, endIndex);
-            categories = paginatedCategories;
-        }
-        res.status(200).json({ status: 200, message: "Category fetched successfully", data: {
-            totalRecords: categories.length,
-            data: categories
-        }});
-        return;
+      const categories = await getCategories();
+  
+      // Tunggu semua Promise dari getUserById dengan Promise.all
+      const users = await Promise.all(
+        categories.map((category) => getUserById(category?.userId))
+      );
+  
+      let data = categories.map((category, index) => ({
+        id: category.id,
+        name: category.name,
+        user: {
+            id: users[index]?.id,
+            username: users[index]?.username,
+            name: users[index]?.name,
+        },
+        updatedAt: category.updatedAt,
+        createdAt: category.createdAt,
+      }));
+  
+      const params = req.params as QueryParams;
+  
+      if (params.page && params.limit) {
+        const startIndex = (params.page - 1) * params.limit;
+        const endIndex = params.page * params.limit;
+        data = data.slice(startIndex, endIndex);
+      }
+  
+      res.status(200).json({
+        status: 200,
+        message: "Category fetched successfully",
+        data: {
+          totalRecords: data.length,
+          data,
+        },
+      });
     } catch (error) {
-        next(error);
+      next(error);
     }
-}
+};
 
 export {
     createCategory,

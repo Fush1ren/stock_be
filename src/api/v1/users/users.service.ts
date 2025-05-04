@@ -13,6 +13,24 @@ const getUserData = async (): Promise<User[]> => {
     }));
 }
 
+const getUserById = async (id: string): Promise<User | null> => {
+    const db = await prismaClient.users.findUnique({
+        where: {
+            id: id
+        }
+    });
+    if (!db) return null;
+    return {
+        id: db.id,
+        username: db.username,
+        name: db.name,
+        role: db.role,
+        createdAt: db.createdAt,
+        updatedAt: db.updatedAt,
+    };
+}
+
 export {
     getUserData,
+    getUserById,
 }

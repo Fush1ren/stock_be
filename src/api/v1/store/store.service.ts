@@ -11,6 +11,22 @@ const getStores = async (): Promise<Store[]> => {
     }));
 }
 
+const getStoreById = async (id: string): Promise<Store | null> => {
+    const db = await prismaClient.stores.findUnique({
+        where: {
+            id: id
+        }
+    });
+    if (!db) return null;
+    return {
+        id: db.id,
+        name: db.name,
+        userId: db.userId,
+        createdAt: db.createdAt,
+    };
+}
+
 export {
     getStores,
+    getStoreById,
 }
