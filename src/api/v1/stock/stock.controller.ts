@@ -4,6 +4,9 @@ import { prismaClient } from "../../../config/db";
 import { getStocksIn, getStocksOut } from "./stock.service";
 import { QueryParams } from "../../../dto/api.dto";
 import { getUserByToken } from "../../../utils/api.util";
+import { getUserById } from "../users/users.service";
+import { getProductById } from "../product/product.service";
+import { getStoreById } from "../store/store.service";
 
 const createStockIn = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -47,17 +50,51 @@ const createStockIn = async (req: Request, res: Response, next: NextFunction) =>
 
 const getStockIn = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        let stock = await getStocksIn();
+        const stocks = await getStocksIn();
+
+        const users = await Promise.all(
+            stocks.map((stock) => getUserById(stock?.userId))
+        );
+
+        const products = await Promise.all(
+            stocks.map((stock) => getProductById(stock?.productId))
+        );
+
+        const getStores = await Promise.all(
+            stocks.map((stock) => getStoreById(stock?.storeId))
+        );
+
+        let data = stocks.map((stock, index) => ({
+            id: stock.id,
+            qty: stock.quantity,
+            products: {
+                id: products[index]?.id,
+                name: products[index]?.name,
+                description: products[index]?.description,
+                unit: products[index]?.unit,
+            },
+            stores: {
+                id: getStores[index]?.id,
+                name: getStores[index]?.name,
+            },
+            user: {
+                id: users[index]?.id,
+                username: users[index]?.username,
+                name: users[index]?.name,
+            },
+            updatedAt: stock.updatedAt,
+          }));
+
         const params = req.params as QueryParams;
         if (params.page && params.limit) {
             const startIndex = (params.page - 1) * params.limit;
             const endIndex = params.page * params.limit;
-            const paginatedStock = stock.slice(startIndex, endIndex);
-            stock = paginatedStock;
+            const paginatedStock = data.slice(startIndex, endIndex);
+            data = paginatedStock;
         }
         res.status(200).json({ status: 200, message: 'Successfully Get Stock Data!', data: {
-            totalRecords: stock.length,
-            data: stock
+            totalRecords: data.length,
+            data: data
         }});
         return;
     } catch (error) {
@@ -107,17 +144,51 @@ const createStockOut = async (req: Request, res: Response, next: NextFunction) =
 
 const getStockOut = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        let stock = await getStocksOut();
+        let stocks = await getStocksOut();
+
+        const users = await Promise.all(
+            stocks.map((stock) => getUserById(stock?.userId))
+        );
+
+        const products = await Promise.all(
+            stocks.map((stock) => getProductById(stock?.productId))
+        );
+
+        const getStores = await Promise.all(
+            stocks.map((stock) => getStoreById(stock?.storeId))
+        );
+
+        let data = stocks.map((stock, index) => ({
+            id: stock.id,
+            qty: stock.quantity,
+            products: {
+                id: products[index]?.id,
+                name: products[index]?.name,
+                description: products[index]?.description,
+                unit: products[index]?.unit,
+            },
+            stores: {
+                id: getStores[index]?.id,
+                name: getStores[index]?.name,
+            },
+            user: {
+                id: users[index]?.id,
+                username: users[index]?.username,
+                name: users[index]?.name,
+            },
+            updatedAt: stock.updatedAt,
+          }));
+
         const params = req.params as QueryParams;
         if (params.page && params.limit) {
             const startIndex = (params.page - 1) * params.limit;
             const endIndex = params.page * params.limit;
-            const paginatedStock = stock.slice(startIndex, endIndex);
-            stock = paginatedStock;
+            const paginatedStock = data.slice(startIndex, endIndex);
+            data = paginatedStock;
         }
         res.status(200).json({ status: 200, message: 'Successfully Get Stock Out Data!', data: {
-            totalRecords: stock.length,
-            data: stock
+            totalRecords: data.length,
+            data: data
         }});
         return;
     } catch (error) {

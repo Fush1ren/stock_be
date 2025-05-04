@@ -5,6 +5,7 @@ import { StatusProduct } from "@prisma/client";
 import { getUserByToken } from "../../../utils/api.util";
 import { getProducts } from "./product.service";
 import { QueryParams } from "src/dto/api.dto";
+import { getUserById } from "../users/users.service";
 
 const createProduct = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -51,18 +52,42 @@ const createProduct = async (req: Request, res: Response, next: NextFunction) =>
 
 const getProduct = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        let product = await getProducts();
+        const products = await getProducts();
+
+        const users = await Promise.all(
+            products.map((product) => getUserById(product?.userId))
+        );
+
+        let data = products.map((product, index) => ({
+            id: product.id,
+            name: product.name,
+            unit: product.unit,
+            description: product.description,
+            user: {
+                id: users[index]?.id,
+                username: users[index]?.username,
+                name: users[index]?.name,
+            },
+            updatedAt: product.updatedAt,
+            createdAt: product.createdAt,
+          }));
+
         const params = req.params as QueryParams;
+
         if (params.page && params.limit) {
             const startIndex = (params.page - 1) * params.limit;
             const endIndex = params.page * params.limit;
-            const paginatedProduct = product.slice(startIndex, endIndex);
-            product = paginatedProduct;
+            const paginatedProduct = data.slice(startIndex, endIndex);
+            data = paginatedProduct;
         }
-        res.status(200).json({ status: 200, message: 'Successfully Get Product Data!', data: {
-            totalRecords: product.length,
-            data: product
-        } });
+        res.status(200).json({ 
+            status: 200, 
+            message: 'Successfully Get Product Data!', 
+            data: {
+                totalRecords: data.length,
+                data: data
+            } 
+        });
     } catch (error) {
         next(error);
     }

@@ -16,6 +16,27 @@ const getProducts = async (): Promise<Product[]> => {
     }));
 }
 
+const getProductById = async (id: string): Promise<Product | null> => {
+    const db = await prismaClient.products.findUnique({
+        where: {
+            id: id
+        }
+    });
+    if (!db) return null;
+    return {
+        id: db.id,
+        name: db.name,
+        description: db.description,
+        unit: db.unit,
+        status: db.status,
+        userId: db.userId,
+        categoryId: db.categoryId,
+        createdAt: db.createdAt,
+        updatedAt: db.updatedAt,
+    };
+}
+
 export {
     getProducts,
+    getProductById,
 }
