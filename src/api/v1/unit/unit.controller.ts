@@ -1,23 +1,29 @@
 import { Request, Response } from "express";
-import { getPage, responseAPI, responseAPITable } from "../../utils";
+import { getPage, responseAPI, responseAPIData } from "../../utils";
 import { prismaClient } from "../../config";
 import { QueryParams } from "../../dto";
 import { IQuery } from "../../types/data.type";
 
-export const createCategory = async (req: Request, res: Response) => {
+export const createUnit = async (req: Request, res: Response) => {
     try {
         const { name, userId } = req.body;
-
         if (!name) {
-            return responseAPI(res, {
+            responseAPI(res, {
                 status: 400,
-                message: "Name is required",
+                message: 'Name is required!',
             });
         }
 
-        await prismaClient.category.create({
+        if (!userId) {
+            responseAPI(res, {
+                status: 400,
+                message: 'User Id is required!',
+            });
+        }
+
+        await prismaClient.unit.create({
             data: {
-                name: name,
+                name,
                 createdBy: {
                     connect: {
                         id: userId,
@@ -27,27 +33,26 @@ export const createCategory = async (req: Request, res: Response) => {
                     connect: {
                         id: userId,
                     }
-                },
-            },
+                }
+            }
         });
-
         responseAPI(res, {
-            status: 201,
-            message: "Category created successfully",
+            status: 200,
+            message: 'Unit created successfully',
         });
     } catch (error) {
         responseAPI(res, {
             status: 500,
-            message: "Internal server error",
-        })
+            message: 'Internal server error',
+        });
     }
 }
 
-export const getAllCategory = async (req: Request, res: Response) => {
+export const getAllUnit = async (req: Request, res: Response) => {
     try {
         const queryParams = req.query as QueryParams;
         let queryTable = {
-            select: {
+             select: {
                 id: true,
                 name: true,
                 createdAt: true,
@@ -63,11 +68,10 @@ export const getAllCategory = async (req: Request, res: Response) => {
                         id: true,
                         name: true,
                     }
-                },
-            },
+                }
+             }
         } as IQuery;
-
-       if (queryParams.page || queryParams.limit) {
+         if (queryParams.page || queryParams.limit) {
             const page = getPage(queryParams.page ?? 1, queryParams.limit ?? 10);
             queryTable = {
                 ...queryTable,
@@ -75,22 +79,20 @@ export const getAllCategory = async (req: Request, res: Response) => {
                 take: page.take,
             }
         }
-
-        const categories = await prismaClient.category.findMany(queryTable);
-        const totalRecords = await prismaClient.category.count();
-
-        responseAPITable(res, {
+        const units = await prismaClient.unit.findMany(queryTable);
+        const totalRecords = await prismaClient.unit.count();
+        responseAPIData(res, {
             status: 200,
-            message: "Categories fetched successfully",
+            message: 'Units retrieved successfully',
             data: {
                 totalRecords,
-                data: categories
-            }
+                data: units,
+            },
         });
     } catch (error) {
         responseAPI(res, {
             status: 500,
-            message: "Internal server error",
+            message: 'Internal server error',
         });
     }
 }

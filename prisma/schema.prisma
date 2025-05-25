@@ -1,132 +1,315 @@
-datasource db {
-  provider = "mongodb"
-  url      = env("DATABASE_URL")
-}
-
 generator client {
   provider = "prisma-client-js"
 }
 
-enum Roles {
-  superAdmin
-  admin
-  employee
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 enum StatusProduct {
-  unavailable
   available
   outOfStock
 }
 
-model users {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  username  String   @unique
-  name      String
-  password  String
-  role      Roles
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  token     String?
-  categories category[]
-  stores    stores[]
-  products  products[]
-  stocks    stocks[]
-  stocksOut stocksOut[]
-  stockMovements stockMovements[]
+model Role {
+    id        Int   @id @default(autoincrement()) @db.Integer
+    name      String @unique @db.VarChar(25)
+    createdAt DateTime @default(now()) @db.Timestamptz()
+    updatedAt DateTime @updatedAt @db.Timestamptz()
+    createdById Int @db.Integer
+    updatedById Int @db.Integer
+
+    createdBy  User     @relation("RoleCreatedBy", fields: [createdById], references: [id])
+    updatedBy  User     @relation("RoleUpdatedBy", fields: [updatedById], references: [id])
+
+    users     User[]   @relation("RoleUsers")
+    @@map("role")
 }
 
-model stores {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  name      String   @unique
-  userId    String @db.ObjectId
-  createdAt DateTime @default(now())
+model User {
+    id        Int   @id @default(autoincrement()) @db.Integer
+    name      String @db.VarChar(50)
+    username  String @unique @db.VarChar(15)
+    email     String @unique @db.VarChar(50)
+    password  String @db.VarChar(20)
+    photo     Bytes? @db.ByteA
+    refreshToken String? @db.VarChar(100)
+    createdAt DateTime @default(now()) @db.Timestamptz()
+    updatedAt DateTime @updatedAt @db.Timestamptz()
 
-  stocks    stocks[]
-  stocksOut stocksOut[]
-  user      users @relation(fields: [userId], references: [id])
-  fromMovements stockMovements[] @relation("FromStore") // Opposite relation for `fromStore`
-  toMovements   stockMovements[] @relation("ToStore")   // Opposite relation for `toStore`
+    createdById Int @db.Integer
+    updatedById Int @db.Integer
+    roleId   Int @db.Integer
+
+    createdRoles Role[] @relation("RoleCreatedBy")
+    updatedRoles Role[] @relation("RoleUpdatedBy")
+    usersCreated User[] @relation("UserCreatedBy")
+    usersUpdated User[] @relation("UserUpdatedBy")
+    storesCreated Store[] @relation("StoreCreatedBy")
+    storesUpdated Store[] @relation("StoreUpdatedBy")
+    unitsCreated Unit[] @relation("UnitCreatedBy")
+    unitsUpdated Unit[] @relation("UnitUpdatedBy")
+    brandsCreated Brand[] @relation("BrandCreatedBy")
+    brandsUpdated Brand[] @relation("BrandUpdatedBy")
+    productsCreated Product[] @relation("ProductCreatedBy")
+    productsUpdated Product[] @relation("ProductUpdatedBy")
+    categoriesCreated Category[] @relation("CategoryCreatedBy")
+    categoriesUpdated Category[] @relation("CategoryUpdatedBy")
+    StockCreated StoreStock[] @relation("StockCreatedBy")
+    StockUpdated StoreStock[] @relation("StockUpdatedBy")
+    StockInCreated StockIn[] @relation("StockInCreatedBy")
+    StockInUpdated StockIn[] @relation("StockInUpdatedBy")
+    StockOutCreated StockOut[] @relation("StockOutCreatedBy")
+    StockOutUpdated StockOut[] @relation("StockOutUpdatedBy")
+    StockMutationCreated StockMutation[] @relation("StockMutationCreatedBy")
+    StockMutationUpdated StockMutation[] @relation("StockMutationUpdatedBy")
+    WareHouseStockCreated WareHouseStock[] @relation("WareHouseStockCreatedBy")
+    WareHouseStockUpdated WareHouseStock[] @relation("WareHouseStockUpdatedBy")
+    
+    createdBy  User @relation("UserCreatedBy", fields: [createdById], references: [id])
+    updatedBy  User @relation("UserUpdatedBy", fields: [updatedById], references: [id])
+    roles     Role @relation("RoleUsers", fields: [roleId], references: [id])
+    @@map("user")
 }
 
-model products {
-  id       String   @id @default(auto()) @map("_id") @db.ObjectId
-  name     String   @unique
-  description String?
-  unit     String // kg, pcs, liter, dll
-  status   StatusProduct @default(unavailable) // unavailale, available, out of stock
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  userId   String @db.ObjectId
-  categoryId String @db.ObjectId
+model Store {
+    id        Int   @id @default(autoincrement()) @db.Integer
+    name      String @db.VarChar(25)
+    createdAt DateTime @default(now()) @db.Timestamptz()
+    updatedAt DateTime @updatedAt @db.Timestamptz()
 
-  category category @relation(fields: [categoryId], references: [id])
-  user     users @relation(fields: [userId], references: [id])
-  stocks  stocks[]
-  stocksOut stocksOut[]
-  stockMovements stockMovements[]
+    createdById Int @db.Integer
+    updatedById Int @db.Integer
+
+    StoreStock StoreStock[]
+    StockIn StockIn[]
+    StockOut StockOut[]
+    fromStore StockMutation[] @relation("fromStore")
+    toStore StockMutation[] @relation("toStore")
+    
+    createdBy  User @relation("StoreCreatedBy", fields: [createdById], references: [id])
+    updatedBy User @relation("StoreUpdatedBy", fields: [updatedById], references: [id])
+    @@map("store")
 }
 
-model stocks {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  quantity  Int
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  storeId   String   @db.ObjectId
-  productId String   @db.ObjectId
-  userId    String  @db.ObjectId
-  date      DateTime
+model Unit {
+    id        Int   @id @default(autoincrement()) @db.Integer
+    name      String @db.VarChar(25)
+    createdAt DateTime @default(now()) @db.Timestamptz()
+    updatedAt DateTime @updatedAt @db.Timestamptz()
 
-  store     stores @relation(fields: [storeId], references: [id])
-  product   products @relation(fields: [productId], references: [id])
-  user      users @relation(fields: [userId], references: [id])
+    createdById Int @db.Integer
+    updatedById Int @db.Integer
 
-  @@unique([storeId, productId]) // 1 produk hanya boleh 1 data stok per store
+    createdBy  User @relation("UnitCreatedBy", fields: [createdById], references: [id])
+    updatedBy User @relation("UnitUpdatedBy", fields: [updatedById], references: [id])
+
+
+    Products Product[]
+    @@map("unit")
 }
 
-model stocksOut {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  quantity  Int
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  storeId   String   @db.ObjectId
-  productId String   @db.ObjectId
-  userId    String  @db.ObjectId
-  date      DateTime
+model Brand {
+    id        Int   @id @default(autoincrement()) @db.Integer
+    name      String @db.VarChar(25)
+    createdAt DateTime @default(now()) @db.Timestamptz()
+    updatedAt DateTime @updatedAt @db.Timestamptz()
 
-  store     stores @relation(fields: [storeId], references: [id])
-  product   products @relation(fields: [productId], references: [id])
-  user      users @relation(fields: [userId], references: [id])
+    createdById Int @db.Integer
+    updatedById Int @db.Integer
 
-  @@unique([storeId, productId]) // 1 produk hanya boleh 1 data stok per store
+    createdBy  User @relation("BrandCreatedBy", fields: [createdById], references: [id])
+    updatedBy User @relation("BrandUpdatedBy", fields: [updatedById], references: [id])
+
+    Products Product[]
+    @@map("brand")
 }
 
-model category {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  name      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  userId    String @db.ObjectId
+model Category {
+    id        Int   @id @default(autoincrement()) @db.Integer
+    name      String @db.VarChar(25)
+    createdAt DateTime @default(now()) @db.Timestamptz()
+    updatedAt DateTime @updatedAt @db.Timestamptz()
 
-  user      users @relation(fields: [userId], references: [id])
-  products  products[]
+    createdById Int @db.Integer
+    updatedById Int @db.Integer
+
+    createdBy  User @relation("CategoryCreatedBy", fields: [createdById], references: [id])
+    updatedBy User @relation("CategoryUpdatedBy", fields: [updatedById], references: [id])
+
+    Products Product[]
+    @@map("category")
 }
 
-model stockMovements {
-  id           String     @id @default(auto()) @map("_id") @db.ObjectId
-  product      products    @relation(fields: [productId], references: [id])
-  productId    String     @db.ObjectId
+model Product {
+    id        Int   @id @default(autoincrement()) @db.Integer
+    name      String @db.VarChar(50)
+    productCode String @unique @db.VarChar(10)
+    description String? @db.VarChar(100)
+    createdAt DateTime @default(now()) @db.Timestamptz()
+    updatedAt DateTime @updatedAt @db.Timestamptz()
 
-  fromStore    stores      @relation("FromStore", fields: [fromStoreId], references: [id])
-  fromStoreId  String     @db.ObjectId
+    unitId Int @db.Integer
+    createdById Int @db.Integer
+    updatedById Int @db.Integer
+    categoryId Int @db.Integer
+    brandId Int @db.Integer
 
-  toStore      stores      @relation("ToStore", fields: [toStoreId], references: [id])
-  toStoreId    String     @db.ObjectId
+    unit Unit @relation(fields: [unitId], references: [id])
+    category Category @relation(fields: [categoryId], references: [id])
+    brand Brand @relation(fields: [brandId], references: [id])
+    createdBy  User @relation("ProductCreatedBy", fields: [createdById], references: [id])
+    updatedBy User @relation("ProductUpdatedBy", fields: [updatedById], references: [id])
+    
+    Stock StoreStock[]
+    StockInDetail StockInDetail[]
+    StockOutDetail StockOutDetail[]
+    StockMutationDetail StockMutationDetail[]
+    WareHouseStock WareHouseStock[]
+    @@map("product")
+}
 
-  user         users      @relation(fields: [userId], references: [id])
-  userId       String     @db.ObjectId
+model StoreStock {
+    id        Int   @id @default(autoincrement()) @db.Integer
+    quantity  Int   @db.Integer
+    status StatusProduct
+    createdAt DateTime @default(now()) @db.Timestamptz()
+    updatedAt DateTime @updatedAt @db.Timestamptz()
 
-  quantity     Int
-  movementDate DateTime   @default(now())
-  note         String?
+    createdById Int @db.Integer
+    updatedById Int @db.Integer
+    productId Int @db.Integer
+    storeId Int @db.Integer
+
+    store Store @relation(fields: [storeId], references: [id])
+    product Product @relation(fields: [productId], references: [id])
+    createdBy  User @relation("StockCreatedBy", fields: [createdById], references: [id])
+    updatedBy User @relation("StockUpdatedBy", fields: [updatedById], references: [id])
+
+    @@unique([storeId, productId])
+    @@map("stock")
+}
+
+model WareHouseStock {
+    id        Int   @id @default(autoincrement()) @db.Integer
+    quantity  Int   @db.Integer
+    status StatusProduct
+    createdAt DateTime @default(now()) @db.Timestamptz()
+    updatedAt DateTime @updatedAt @db.Timestamptz()
+
+    createdById Int @db.Integer
+    updatedById Int @db.Integer
+    productId Int @db.Integer
+
+    product Product @relation(fields: [productId], references: [id])
+    createdBy  User @relation("WareHouseStockCreatedBy", fields: [createdById], references: [id])
+    updatedBy User @relation("WareHouseStockUpdatedBy", fields: [updatedById], references: [id])
+
+    @@map("warehouse_stock")
+}
+
+model StockIn {
+    id        Int   @id @default(autoincrement()) @db.Integer
+    stockInCode String @unique @db.VarChar(10)
+    date      DateTime @db.Timestamptz()
+    createdAt DateTime @default(now()) @db.Timestamptz()
+    updatedAt DateTime @updatedAt @db.Timestamptz()
+    toWarehouse Boolean @default(false)
+
+    createdById Int @db.Integer
+    updatedById Int @db.Integer
+    storeId Int? @db.Integer
+
+    StockInDetail StockInDetail[]
+
+
+    toStore Store? @relation(fields: [storeId], references: [id])
+    createdBy  User @relation("StockInCreatedBy", fields: [createdById], references: [id])
+    updatedBy User @relation("StockInUpdatedBy", fields: [updatedById], references: [id])
+
+    @@map("stock_in")
+}
+
+model StockInDetail {
+    id        Int   @id @default(autoincrement()) @db.Integer
+    quantity  Int   @db.Integer
+
+    stockInId Int @db.Integer
+    productId Int @db.Integer
+
+    stockIn StockIn @relation(fields: [stockInId], references: [id])
+    product Product @relation(fields: [productId], references: [id])
+
+    @@map("stock_in_detail")
+}
+
+model StockOut {
+    id        Int   @id @default(autoincrement()) @db.Integer
+    stockOutCode String @unique @db.VarChar(10)
+    date      DateTime @db.Timestamptz()
+    createdAt DateTime @default(now()) @db.Timestamptz()
+    updatedAt DateTime @updatedAt @db.Timestamptz()
+
+    createdById Int @db.Integer
+    updatedById Int @db.Integer
+    storeId Int @db.Integer
+
+    StockOutDetail StockOutDetail[]
+
+    fromStore Store @relation(fields: [storeId], references: [id])
+    createdBy  User @relation("StockOutCreatedBy", fields: [createdById], references: [id])
+    updatedBy User @relation("StockOutUpdatedBy", fields: [updatedById], references: [id])
+
+    @@map("stock_out")
+}
+
+model StockOutDetail {
+    id        Int   @id @default(autoincrement()) @db.Integer
+    quantity  Int   @db.Integer
+
+    stockOutId Int @db.Integer
+    productId Int @db.Integer
+
+    stockOut StockOut @relation(fields: [stockOutId], references: [id])
+    product Product @relation(fields: [productId], references: [id])
+
+    @@map("stock_out_detail")
+}
+
+model StockMutation {
+    id        Int   @id @default(autoincrement()) @db.Integer
+    stockMutationCode String @unique @db.VarChar(10)
+    date      DateTime @db.Timestamptz()
+    fromWarehouse Boolean @default(false)
+    createdAt DateTime @default(now()) @db.Timestamptz()
+    updatedAt DateTime @updatedAt @db.Timestamptz()
+
+    createdById Int @db.Integer
+    updatedById Int @db.Integer
+    fromStoreId Int? @db.Integer
+    toStoreId Int @db.Integer
+
+    StockMutationDetail StockMutationDetail[]
+
+    fromStore Store? @relation("fromStore", fields: [fromStoreId], references: [id])
+    toStore Store @relation("toStore", fields: [toStoreId], references: [id])
+    createdBy  User @relation("StockMutationCreatedBy", fields: [createdById], references: [id])
+    updatedBy User @relation("StockMutationUpdatedBy", fields: [updatedById], references: [id])
+
+    @@map("stock_mutation")
+}
+
+model StockMutationDetail {
+    id        Int   @id @default(autoincrement()) @db.Integer
+    quantity  Int   @db.Integer
+
+    stockMutationId Int @db.Integer
+    productId Int @db.Integer
+
+    stockMutation StockMutation @relation(fields: [stockMutationId], references: [id])
+    product Product @relation(fields: [productId], references: [id])
+
+    @@map("stock_mutation_detail")
 }

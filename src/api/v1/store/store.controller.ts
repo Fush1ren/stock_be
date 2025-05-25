@@ -1,70 +1,97 @@
-import { NextFunction, Request, Response } from "express";
-import { prismaClient } from "../../../config/db";
-import { getUserByToken } from "../../../utils/api.util";
-import { getStores } from "./store.service";
-import { QueryParams } from "../../../dto/api.dto";
-import { getUserById } from "../users/users.service";
+import { Request, Response } from "express";
+import { prismaClient } from "../../config";
+import { QueryParams } from "../../dto";
+import { getPage, responseAPI, responseAPITable } from "../../utils";
+import { IQuery } from "../../types/data.type";
 
-const createStore = async (req: Request, res: Response, next: NextFunction) => {
+export const createStore = async (req: Request, res: Response) => {
     try {
-        const token = req.headers['authorization']?.split(' ')[1];
-        if (!req.body) {
-            res.status(400).json({ message: "No data provided" });
-            return;
-        };
+        const { name, userId } = req.body;
 
-        const { name } = req.body;
         if (!name) {
-            res.status(400).json({ status: 400, message: "Name is required" });
-            return;
+            responseAPI(res, {
+                status: 400,
+                message: "Name is required",
+            });
         }
 
-        const user = await getUserByToken(token as string);
-
-        // Assuming you have a prismaClient instance to interact with your database
-        await prismaClient.stores.create({
+        await prismaClient.store.create({
             data: {
-                name,
-                userId: user?.id as string,
-            }
-        })
-        res.status(200).json({ status: 200, message: "Store created successfully" });
-        return;
+                name: name,
+                createdBy: {
+                    connect: {
+                        id: userId,
+                    }
+                },
+                updatedBy: {
+                    connect: {
+                        id: userId,
+                    }
+                },
+            },
+        });
+
+
+        responseAPI(res, {
+            status: 201,
+            message: "Store created successfully",
+        });
+
     } catch (error) {
-        next(error);
+        responseAPI(res, {
+            status: 500,
+            message: 'Internal server error',
+        });
     }
 }
 
-const getStore = async (req: Request, res: Response, next: NextFunction) => {
+export const getAllStore = async (req: Request, res: Response) => {
     try {
-        let stores = await getStores();
-
-        const users = await Promise.all(
-            stores.map((store) => getUserById(store?.userId))
-        );
-
-        stores = stores.map((store, index) => ({
-            ...store,
-            user: users[index],
-        }));
-        
-        const params = req.params as QueryParams;
-        if (params.page && params.limit) {
-            const startIndex = (params.page - 1) * params.limit;
-            const endIndex = params.page * params.limit;
-            const paginatedStore = stores.slice(startIndex, endIndex);
-            stores = paginatedStore;
+        const queryParams = req.query as QueryParams;
+        let queryTable = {
+            select: {
+                id: true,
+                name: true,
+                createdAt: true,
+                updatedAt: true,
+                createdBy: {
+                    select: {
+                        id: true,
+                        name: true,
+                    }
+                },
+                updatedBy: {
+                    select: {
+                        id: true,
+                        name: true,
+                    }
+                },
+            }
+        } as IQuery;
+        if (queryParams.page || queryParams.limit) {
+            const page = getPage(queryParams.page ?? 1, queryParams.limit ?? 10);
+            queryTable = {
+                ...queryTable,
+                skip: page.skip,
+                take: page.take,
+            }
         }
-        res.status(200).json({ status: 200, message: 'Successfully Get Store Data!', data: {
-            totalRecords: stores.length,
-            data: stores
-        }});
-    } catch (error) {
-        next(error);
-    }
-}
 
-export {
-    createStore,
-    getStore,
+        const stores = await prismaClient.store.findMany(queryTable);
+        const totalRecords = await prismaClient.store.count();
+
+        responseAPITable(res, {
+            status: 200,
+            message: "Stores retrieved successfully",
+            data: {
+                totalRecords: totalRecords,
+                data: stores,
+            }
+        });
+    } catch (error) {
+        responseAPI(res, {
+            status: 500,
+            message: "Internal server error",
+        })
+    }
 }

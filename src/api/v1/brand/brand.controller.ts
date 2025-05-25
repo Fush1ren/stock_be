@@ -4,46 +4,49 @@ import { prismaClient } from "../../config";
 import { QueryParams } from "../../dto";
 import { IQuery } from "../../types/data.type";
 
-export const createCategory = async (req: Request, res: Response) => {
+export const createBrand = async (req: Request, res: Response) => {
     try {
         const { name, userId } = req.body;
 
         if (!name) {
             return responseAPI(res, {
                 status: 400,
-                message: "Name is required",
+                message: 'Name is required!',
             });
         }
 
-        await prismaClient.category.create({
+        if (!userId) {
+            return responseAPI(res, {
+                status: 400,
+                message: 'User Id is required!',
+            });
+        }
+
+        await prismaClient.brand.create({
             data: {
-                name: name,
+                name,
                 createdBy: {
-                    connect: {
-                        id: userId,
-                    }
+                    connect: { id: userId },
                 },
                 updatedBy: {
-                    connect: {
-                        id: userId,
-                    }
+                    connect: { id: userId },
                 },
             },
         });
 
         responseAPI(res, {
-            status: 201,
-            message: "Category created successfully",
+            status: 200,
+            message: 'Brand created successfully',
         });
     } catch (error) {
         responseAPI(res, {
             status: 500,
-            message: "Internal server error",
-        })
+            message: 'Internal server error',
+        });
     }
 }
 
-export const getAllCategory = async (req: Request, res: Response) => {
+export const getAllBrand = async (req: Request, res: Response) => {
     try {
         const queryParams = req.query as QueryParams;
         let queryTable = {
@@ -63,11 +66,11 @@ export const getAllCategory = async (req: Request, res: Response) => {
                         id: true,
                         name: true,
                     }
-                },
+                }
             },
         } as IQuery;
 
-       if (queryParams.page || queryParams.limit) {
+        if (queryParams.page || queryParams.limit) {
             const page = getPage(queryParams.page ?? 1, queryParams.limit ?? 10);
             queryTable = {
                 ...queryTable,
@@ -76,21 +79,21 @@ export const getAllCategory = async (req: Request, res: Response) => {
             }
         }
 
-        const categories = await prismaClient.category.findMany(queryTable);
-        const totalRecords = await prismaClient.category.count();
-
+        const brands = await prismaClient.brand.findMany(queryTable);
+        const totalRecords = await prismaClient.brand.count();
         responseAPITable(res, {
             status: 200,
-            message: "Categories fetched successfully",
+            message: 'Get all brands successfully',
             data: {
                 totalRecords,
-                data: categories
-            }
+                data: brands,
+            },
         });
+
     } catch (error) {
         responseAPI(res, {
             status: 500,
-            message: "Internal server error",
+            message: 'Internal server error',
         });
     }
 }

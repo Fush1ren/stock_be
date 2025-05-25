@@ -1,11 +1,10 @@
 import { Router } from 'express';
+import { createProduct, getAllProducts } from './product.controller';
 import { verifyToken } from '../../../middleware';
-import { createProduct, getProduct } from './product.controller';
 
-const productRouter = Router();
+const productRoute = Router();
 
-productRouter.post('/', verifyToken, createProduct);
-productRouter.get('/', verifyToken, getProduct);
+productRoute.get('/', verifyToken, getAllProducts);
+productRoute.post('/', verifyToken, createProduct);
 
-
-export default productRouter;
+export default productRoute;

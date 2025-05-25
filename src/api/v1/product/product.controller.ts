@@ -1,99 +1,168 @@
-import { NextFunction, Request, Response } from "express";
-import { BodyCreateProduct } from "../../../dto/product.dto";
-import { prismaClient } from "../../../config/db";
-import { StatusProduct } from "@prisma/client";
-import { getUserByToken } from "../../../utils/api.util";
-import { getProducts } from "./product.service";
-import { QueryParams } from "src/dto/api.dto";
-import { getUserById } from "../users/users.service";
+import { Request, Response } from "express";
+import { prismaClient } from "../../config";
+import { getPage, responseAPI, responseAPITable } from "../../utils";
+import { QueryParams } from "../../dto";
+import { IQuery } from "../../types/data.type";
 
-const createProduct = async (req: Request, res: Response, next: NextFunction) => {
+export const createProduct = async (req: Request, res: Response) => {
     try {
-        const token = req.headers['authorization']?.split(' ')[1];
-    if (!req.body) {
-        res.status(400).json({ message: "No data provided" });
-        return;
-    };
-    const body = req.body as BodyCreateProduct;
-    if (!body.name) {
-        res.status(400).json({ status: 400, message: "Name is required" });
-        return;
-    }
-    if (!body.status) {
-        res.status(400).json({ status: 400, message: "Status is required" });
-        return;
-    }
-    if (!body.categoryId) {
-        res.status(400).json({ status: 400, message: "Category is required" });
-        return;
-    }
-    if (!body.unit) {
-        res.status(400).json({ status: 400, message: "Unit is required" });
-        return;
-    }
-    const user = await getUserByToken(token as string);
+        const { name, productCode, description, userId, unitId, categoryId, brandId } = req.body;
 
-    await prismaClient.products.create({
-        data: {
-            name: body.name,
-            description: body.description,
-            unit: body.unit,
-            status: body.status as StatusProduct,
-            userId: user?.id as string,
-            categoryId: body.categoryId
+        if (!name) {
+            responseAPI(res, {
+                status: 400,
+                message: "Name is required",
+            });
         }
-    })
-    res.status(200).json({ status: 200, message: "Product created successfully" });
-    return;
-    } catch (error) {
-        next(error);
-    }
-}
 
-const getProduct = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const products = await getProducts();
-
-        const users = await Promise.all(
-            products.map((product) => getUserById(product?.userId))
-        );
-
-        let data = products.map((product, index) => ({
-            id: product.id,
-            name: product.name,
-            unit: product.unit,
-            description: product.description,
-            user: {
-                id: users[index]?.id,
-                username: users[index]?.username,
-                name: users[index]?.name,
-            },
-            updatedAt: product.updatedAt,
-            createdAt: product.createdAt,
-          }));
-
-        const params = req.params as QueryParams;
-
-        if (params.page && params.limit) {
-            const startIndex = (params.page - 1) * params.limit;
-            const endIndex = params.page * params.limit;
-            const paginatedProduct = data.slice(startIndex, endIndex);
-            data = paginatedProduct;
+        if (!productCode) {
+            responseAPI(res, {
+                status: 400,
+                message: "Product code is required",
+            });
         }
-        res.status(200).json({ 
-            status: 200, 
-            message: 'Successfully Get Product Data!', 
+
+        if (!userId) {
+            responseAPI(res, {
+                status: 400,
+                message: "User ID is required",
+            });
+        }
+
+        if (!categoryId) {
+            responseAPI(res, {
+                status: 400,
+                message: "Category ID is required",
+            });
+        }
+
+        if (!unitId) {
+            responseAPI(res, {
+                status: 400,
+                message: "Unit ID is required",
+            });
+        }
+
+        if (!brandId) {
+            responseAPI(res, {
+                status: 400,
+                message: "Brand ID is required",
+            });
+        }
+
+        await prismaClient.product.create({
             data: {
-                totalRecords: data.length,
-                data: data
-            } 
+                name: name,
+                productCode: productCode,
+                description: description || null,
+                category: {
+                    connect: {
+                        id: categoryId,
+                    }
+                },
+                unit: {
+                    connect: {
+                        id: unitId,
+                    }
+                },
+                brand: {
+                    connect: {
+                        id: brandId,
+                    }
+                },
+                createdBy: {
+                    connect: {
+                        id: userId,
+                    }
+                },
+                updatedBy: {
+                    connect: {
+                        id: userId,
+                    }
+                },
+            },
+        });
+
+        responseAPI(res, {
+            status: 201,
+            message: "Product created successfully",
         });
     } catch (error) {
-        next(error);
+        responseAPI(res, {
+            status: 500,
+            message: "Internal server error",
+        });
     }
 }
 
-export {
-    createProduct,
-    getProduct
+export const getAllProducts = async (req: Request, res: Response) => {
+    try {
+        const queryParams = req.query as QueryParams;
+        let queryTable = {
+            select: {
+                id: true,
+                name: true,
+                productCode: true,
+                description: true,
+                createdAt: true,
+                updatedAt: true,
+                category: {
+                    select: {
+                        id: true,
+                        name: true,
+                    }
+                },
+                unit: {
+                    select: {
+                        id: true,
+                        name: true,
+                    }
+                },
+                brand: {
+                    select: {
+                        id: true,
+                        name: true,
+                    }
+                },
+                createdBy: {
+                    select: {
+                        id: true,
+                        name: true,
+                    }
+                },
+                updatedBy: {
+                    select: {
+                        id: true,
+                        name: true,
+                    }
+                },
+            },
+        } as IQuery;
+
+        if (queryParams.page || queryParams.limit) {
+            const page = getPage(queryParams.page ?? 1, queryParams.limit ?? 10);
+            queryTable = {
+                ...queryTable,
+                skip: page.skip,
+                take: page.take,
+            }
+        }
+
+        const products = await prismaClient.product.findMany(queryTable);
+        const totalRecords = await prismaClient.product.count();
+
+        responseAPITable(res, {
+            status: 200,
+            message: "Stores retrieved successfully",
+            data: {
+                totalRecords: totalRecords,
+                data: products,
+            }
+        });
+    } catch (error) {
+        responseAPI(res, {
+            status: 500,
+            message: "Internal server error",
+        })
+    }
 }

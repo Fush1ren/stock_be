@@ -1,204 +1,780 @@
-import { NextFunction, Request, Response } from "express";
-import { BodyCreateStockIn, BodyCreateStockOut } from "../../../dto/stock.dto";
-import { prismaClient } from "../../../config/db";
-import { getStocksIn, getStocksOut } from "./stock.service";
-import { QueryParams } from "../../../dto/api.dto";
-import { getUserByToken } from "../../../utils/api.util";
-import { getUserById } from "../users/users.service";
-import { getProductById } from "../product/product.service";
-import { getStoreById } from "../store/store.service";
+import { Request, Response } from "express";
+import { getPage, responseAPI, responseAPITable } from "../../utils";
+import { prismaClient } from "../../config";
+import { InsertUpdateQuery, IQuery } from "../../types/data.type";
+import { BodyCreateStockIn, BodyCreateStockMutation, BodyCreateStockOut, BodyCreateStoreStock, BodyCreateWareHouseStock } from "../../../dto/stock.dto";
+import { QueryParams } from "../../dto";
 
-const createStockIn = async (req: Request, res: Response, next: NextFunction) => {
+export const createStoreStock = async (req: Request, res: Response) => {
     try {
-        const token = req.headers['authorization']?.split(' ')[1];
-        if (!req.body) {
-            res.status(400).json({ message: "No data provided" });
-            return;
-        };
+        const { quantity, status, storeId, productId, userId } = req.body as BodyCreateStoreStock;
 
-        const body = req.body as BodyCreateStockIn;
-        if (!body.productId) {
-            res.status(400).json({ status: 400, message: "Product is required" });
-            return;
-        }
-        if (!body.quantity) {
-            res.status(400).json({ status: 400, message: "Quantity required" });
-            return;
+        if (!quantity) {
+            responseAPI(res, {
+                status: 400,
+                message: "Quantity is required",
+            });
         }
 
-        if (!body.storeId) {
-            res.status(400).json({ status: 400, message: "Store is required" });
-            return;
+        if (!status) {
+            responseAPI(res, {
+                status: 400,
+                message: "Status is required",
+            });
         }
 
-        const user = await getUserByToken(token as string);
+        if (!storeId) {
+            responseAPI(res, {
+                status: 400,
+                message: "Store ID is required",
+            });
+        }
 
-        await prismaClient.stocks.create({
+        if (!productId) {
+            responseAPI(res, {
+                status: 400,
+                message: "Product ID is required",
+            });
+        }
+
+        if (!userId) {
+            responseAPI(res, {
+                status: 400,
+                message: "User ID is required",
+            });
+        }
+
+        await prismaClient.storeStock.create({
             data: {
-                quantity: body.quantity,
-                productId: body.productId,
-                storeId: body.storeId,
-                userId: user?.id as string,
-                date: body.date,
-            }
+                quantity: quantity,
+                status: status,
+                store: {
+                    connect: {
+                        id: storeId,
+                    }
+                },
+                product: {
+                    connect: {
+                        id: productId,
+                    }
+                },
+                createdBy: {
+                    connect: {
+                        id: userId,
+                    }
+                },
+                updatedBy: {
+                    connect: {
+                        id: userId,
+                    }
+                },
+            },
+        });
+    } catch (error) {
+        responseAPI(res, {
+            status: 500,
+            message: "Internal server error",
         })
-        res.status(200).json({ status: 200, message: "Stock created successfully" });
-    } catch (error) {
-        next(error);
     }
 }
 
-const getStockIn = async (req: Request, res: Response, next: NextFunction) => {
+export const createWarehouseStock = async (req: Request, res: Response) => {
     try {
-        const stocks = await getStocksIn();
+        const { quantity, status, productId, userId } = req.body as BodyCreateWareHouseStock;
 
-        const users = await Promise.all(
-            stocks.map((stock) => getUserById(stock?.userId))
-        );
-
-        const products = await Promise.all(
-            stocks.map((stock) => getProductById(stock?.productId))
-        );
-
-        const getStores = await Promise.all(
-            stocks.map((stock) => getStoreById(stock?.storeId))
-        );
-
-        let data = stocks.map((stock, index) => ({
-            id: stock.id,
-            qty: stock.quantity,
-            products: {
-                id: products[index]?.id,
-                name: products[index]?.name,
-                description: products[index]?.description,
-                unit: products[index]?.unit,
-            },
-            stores: {
-                id: getStores[index]?.id,
-                name: getStores[index]?.name,
-            },
-            user: {
-                id: users[index]?.id,
-                username: users[index]?.username,
-                name: users[index]?.name,
-            },
-            updatedAt: stock.updatedAt,
-          }));
-
-        const params = req.params as QueryParams;
-        if (params.page && params.limit) {
-            const startIndex = (params.page - 1) * params.limit;
-            const endIndex = params.page * params.limit;
-            const paginatedStock = data.slice(startIndex, endIndex);
-            data = paginatedStock;
-        }
-        res.status(200).json({ status: 200, message: 'Successfully Get Stock Data!', data: {
-            totalRecords: data.length,
-            data: data
-        }});
-        return;
-    } catch (error) {
-        next(error);
-    }
-}
-
-const createStockOut = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const token = req.headers['authorization']?.split(' ')[1];
-        if (!req.body) {
-            res.status(400).json({ message: "No data provided" });
-            return;
-        };
-
-        const body = req.body as BodyCreateStockOut;
-        if (!body.productId) {
-            res.status(400).json({ status: 400, message: "Product is required" });
-            return;
-        }
-        if (!body.quantity) {
-            res.status(400).json({ status: 400, message: "Quantity required" });
-            return;
+        if (!quantity) {
+            responseAPI(res, {
+                status: 400,
+                message: "Quantity is required",
+            });
         }
 
-        if (!body.storeId) {
-            res.status(400).json({ status: 400, message: "Store is required" });
-            return;
+        if (!status) {
+            responseAPI(res, {
+                status: 400,
+                message: "Status is required",
+            });
         }
 
-        const user = await getUserByToken(token as string);
+        if (!productId) {
+            responseAPI(res, {
+                status: 400,
+                message: "Product ID is required",
+            });
+        }
 
-        await prismaClient.stocksOut.create({
+        if (!userId) {
+            responseAPI(res, {
+                status: 400,
+                message: "User ID is required",
+            });
+        }
+
+        await prismaClient.wareHouseStock.create({
             data: {
-                quantity: body.quantity,
-                productId: body.productId,
-                storeId: body.storeId,
-                userId: user?.id as string,
-                date: body.date,
-            }
-        })
-        res.status(200).json({ status: 200, message: "Stock out created successfully" });
+                quantity: quantity,
+                status: status,
+                product: {
+                    connect: {
+                        id: productId,
+                    }
+                },
+                createdBy: {
+                    connect: {
+                        id: userId,
+                    }
+                },
+                updatedBy: {
+                    connect: {
+                        id: userId,
+                    }
+                },
+            },
+        });
+
+        responseAPI(res, {
+            status: 201,
+            message: "Warehouse stock created successfully",
+        });
     } catch (error) {
-        next(error);
+        responseAPI(res, {
+            status: 500,
+            message: "Internal server error",
+        });
     }
 }
 
-const getStockOut = async (req: Request, res: Response, next: NextFunction) => {
+export const createStockIn = async (req: Request, res: Response) => {
     try {
-        let stocks = await getStocksOut();
+        const { stockInCode, date, toWarehouse, storeId, userId, products } = req.body as BodyCreateStockIn;
 
-        const users = await Promise.all(
-            stocks.map((stock) => getUserById(stock?.userId))
-        );
-
-        const products = await Promise.all(
-            stocks.map((stock) => getProductById(stock?.productId))
-        );
-
-        const getStores = await Promise.all(
-            stocks.map((stock) => getStoreById(stock?.storeId))
-        );
-
-        let data = stocks.map((stock, index) => ({
-            id: stock.id,
-            qty: stock.quantity,
-            products: {
-                id: products[index]?.id,
-                name: products[index]?.name,
-                description: products[index]?.description,
-                unit: products[index]?.unit,
+        const queryTable =             {
+            data: {
+                stockInCode: stockInCode,
+                date: new Date(date),
+                createdBy: {
+                    connect: {
+                        id: userId,
+                    }
+                },
+                updatedBy: {
+                    connect: {
+                        id: userId,
+                    }
+                },
+                StockInDetail: {
+                    create:  products.map((product) => ({
+                        productId: product.productId,
+                        quantity: product.quantity,
+                    })),
+                }
             },
-            stores: {
-                id: getStores[index]?.id,
-                name: getStores[index]?.name,
-            },
-            user: {
-                id: users[index]?.id,
-                username: users[index]?.username,
-                name: users[index]?.name,
-            },
-            updatedAt: stock.updatedAt,
-          }));
+            include: {
+                StockInDetail: true,
+            }
+        } as InsertUpdateQuery;
 
-        const params = req.params as QueryParams;
-        if (params.page && params.limit) {
-            const startIndex = (params.page - 1) * params.limit;
-            const endIndex = params.page * params.limit;
-            const paginatedStock = data.slice(startIndex, endIndex);
-            data = paginatedStock;
+        if (!stockInCode) {
+            responseAPI(res, {
+                status: 400,
+                message: "Code is required",
+            });
         }
-        res.status(200).json({ status: 200, message: 'Successfully Get Stock Out Data!', data: {
-            totalRecords: data.length,
-            data: data
+        if (!date) {
+            responseAPI(res, {
+                status: 400,
+                message: "Date is required",
+            });
+        }
+
+        if (!toWarehouse) {
+            if (!storeId) {
+                responseAPI(res, {
+                    status: 400,
+                    message: "Store ID is required",
+                });
+            }
+            queryTable.data.store = {
+                connect: {
+                    id: storeId,
+                }
+            };
+        }
+
+        if (!userId) {
+            responseAPI(res, {
+                status: 400,
+                message: "User ID is required",
+            });
+        }
+
+        if (!products || products.length === 0) {
+            responseAPI(res, {
+                status: 400,
+                message: "Products are required",
+            });
+        }
+
+        products.find((product) => {
+            if (!product.productId) {
+                responseAPI(res, {
+                    status: 400,
+                    message: "Product ID is required",
+                });
+            }
+            if (!product.quantity) {
+                responseAPI(res, {
+                    status: 400,
+                    message: "Quantity is required",
+            });
         }});
-        return;
+
+        await prismaClient.stockIn.create(queryTable);
+        responseAPI(res, {
+            status: 201,
+            message: "Stock in created successfully",
+        });
     } catch (error) {
-        next(error);
+        responseAPI(res, {
+            status: 500,
+            message: "Internal server error",
+        });
     }
 }
 
-export {
-    createStockIn,
-    getStockIn,
-    createStockOut,
-    getStockOut,
+export const createStockOut = async (req: Request, res: Response) => {
+    try {
+        const { stockOutCode, date, storeId, userId, products } = req.body as BodyCreateStockOut;
+
+        const queryTable = {
+            data: {
+                stockOutCode: stockOutCode,
+                date: new Date(date),
+                createdBy: {
+                    connect: {
+                        id: userId,
+                    }
+                },
+                updatedBy: {
+                    connect: {
+                        id: userId,
+                    }
+                },
+                StockOutDetail: {
+                    create:  products.map((product) => ({
+                        productId: product.productId,
+                        quantity: product.quantity,
+                    })),
+                }
+            },
+            include: {
+                StockOutDetail: true,
+            }
+        } as InsertUpdateQuery;
+
+        if (!stockOutCode) {
+            responseAPI(res, {
+                status: 400,
+                message: "Code is required",
+            });
+        }
+        if (!date) {
+            responseAPI(res, {
+                status: 400,
+                message: "Date is required",
+            });
+        }
+
+        if (!storeId) {
+            responseAPI(res, {
+                status: 400,
+                message: "Store ID is required",
+            });
+        }
+        
+        if (!userId) {
+            responseAPI(res, {
+                status: 400,
+                message: "User ID is required",
+            });
+        }
+
+        if (!products || products.length === 0) {
+            responseAPI(res, {
+                status: 400,
+                message: "Products are required",
+            });
+        }
+
+        products.find((product) => {
+            if (!product.productId) {
+                responseAPI(res, {
+                    status: 400,
+                    message: "Product ID is required",
+                });
+            }
+            if (!product.quantity) {
+                responseAPI(res, {
+                    status: 400,
+                    message: "Quantity is required",
+            });
+        }});
+
+        await prismaClient.stockOut.create(queryTable);
+        responseAPI(res, {
+            status: 201,
+            message: "Stock out created successfully",
+        });
+    } catch (error) {
+        responseAPI(res, {
+            status: 500,
+            message: "Internal server error",
+        });
+    }
+}
+
+export const createStockMutation = async (req: Request, res: Response) => {
+    try {
+        const { stockMutationCode, date, fromWarehouse, toStoreId, fromStoreId, userId, products } = req.body as BodyCreateStockMutation;
+
+        const queryTable = {
+            data: {
+                stockMutationCode: stockMutationCode,
+                date: new Date(date),
+                fromWarehouse: {
+                    connect: {
+                        id: fromWarehouse,
+                    }
+                },
+                toStore: {
+                    connect: {
+                        id: toStoreId,
+                    }
+                },
+                createdBy: {
+                    connect: {
+                        id: userId,
+                    }
+                },
+                updatedBy: {
+                    connect: {
+                        id: userId,
+                    }
+                },
+                StockMutationDetail: {
+                    create:  products.map((product) => ({
+                        productId: product.productId,
+                        quantity: product.quantity,
+                    })),
+                }
+            },
+            include: {
+                StockMutationDetail: true,
+            }
+        } as InsertUpdateQuery;
+
+        if (!stockMutationCode) {
+            responseAPI(res, {
+                status: 400,
+                message: "Stock mutation code is required",
+            });
+        }
+
+        if (!date) {
+            responseAPI(res, {
+                status: 400,
+                message: "Date is required",
+            });
+        }
+
+        if (!fromWarehouse) {
+            if (!fromStoreId) {
+                responseAPI(res, {
+                    status: 400,
+                    message: "From store ID is required",
+                });  
+            }
+            queryTable.data.fromStore = {
+                connect: {
+                    id: fromStoreId,
+                }
+            };
+        }
+
+        if (!toStoreId) {
+            responseAPI(res, {
+                status: 400,
+                message: "To store ID is required",
+            });
+        }
+
+        if (!userId) {
+            responseAPI(res, {
+                status: 400,
+                message: "User ID is required",
+            });
+        }
+
+        if (!products || products.length === 0) {
+            responseAPI(res, {
+                status: 400,
+                message: "Products are required",
+            });
+        }
+
+        products.forEach((product) => {
+            if (!product.productId) {
+                responseAPI(res, {
+                    status: 400,
+                    message: "Product ID is required",
+                });
+            }
+            if (!product.quantity) {
+                responseAPI(res, {
+                    status: 400,
+                    message: "Quantity is required",
+                });
+            }
+        });
+
+        // Logic to create stock mutation goes here
+        await prismaClient.stockMutation.create(queryTable);
+        responseAPI(res, {
+            status: 201,
+            message: "Stock mutation created successfully",
+        });
+    } catch (error) {
+        responseAPI(res, {
+            status: 500,
+            message: "Internal server error",
+        });
+    }
+    
+}
+
+export const getAllStoreStocks = async (req: Request, res: Response) => {
+    try {
+        const queryParams = req.query as QueryParams;
+        let queryTable = {
+            select: {
+                id: true,
+                quantity: true,
+                status: true,
+                createdAt: true,
+                updatedAt: true,
+                store: {
+                    select: {
+                        id: true,
+                        name: true,
+                    }
+                },
+                product: {
+                    select: {
+                        id: true,
+                        name: true,
+                    }
+                },
+                createdBy: {
+                    select: {
+                        id: true,
+                        name: true,
+                    }
+                },
+                updatedBy: {
+                    select: {
+                        id: true,
+                        name: true,
+                    }
+                },
+            }
+        } as IQuery;
+
+        if (queryParams.page || queryParams.limit) {
+            const page = getPage(queryParams.page ?? 1, queryParams.limit ?? 10);
+            queryTable = {
+                ...queryTable,
+                skip: page.skip,
+                take: page.take,
+            }
+        }
+
+        const storeStocks = await prismaClient.storeStock.findMany(queryTable);
+        const totalRecords = await prismaClient.storeStock.count();
+
+        responseAPITable(res, {
+            status: 200,
+            message: "Store stocks retrieved successfully",
+            data: {
+                totalRecords: totalRecords,
+                data: storeStocks,
+            }
+        });
+    } catch (error) {
+        responseAPI(res, {
+            status: 500,
+            message: "Internal server error",
+        });
+    }
+}
+
+export const getAllWarehouseStocks = async (req: Request, res: Response) => {
+    try {
+        const queryParams = req.query as QueryParams;
+        let queryTable = {
+            select: {
+                id: true,
+                quantity: true,
+                status: true,
+                createdAt: true,
+                updatedAt: true,
+                product: {
+                    select: {
+                        id: true,
+                        name: true,
+                    }
+                },
+                createdBy: {
+                    select: {
+                        id: true,
+                        name: true,
+                    }
+                },
+                updatedBy: {
+                    select: {
+                        id: true,
+                        name: true,
+                    }
+                },
+            }
+        } as IQuery;
+
+        if (queryParams.page || queryParams.limit) {
+            const page = getPage(queryParams.page ?? 1, queryParams.limit ?? 10);
+            queryTable = {
+                ...queryTable,
+                skip: page.skip,
+                take: page.take,
+            }
+        }
+
+        const warehouseStocks = await prismaClient.wareHouseStock.findMany(queryTable);
+        const totalRecords = await prismaClient.wareHouseStock.count();
+
+        responseAPITable(res, {
+            status: 200,
+            message: "Warehouse stocks retrieved successfully",
+            data: {
+                totalRecords: totalRecords,
+                data: warehouseStocks,
+            }
+        });
+    } catch (error) {
+        responseAPI(res, {
+            status: 500,
+            message: "Internal server error",
+        });
+    }
+}
+
+export const getAllStocksIn = async (req: Request, res: Response) => {
+    try {
+        const queryParams = req.query as QueryParams;
+        let queryTable = {
+            select: {
+                id: true,
+                stockInCode: true,
+                date: true,
+                createdAt: true,
+                updatedAt: true,
+                toWarehouse: true,
+                toStore: {
+                    select: {
+                        id: true,
+                        name: true,
+                    }
+                },
+                createdBy: {
+                    select: {
+                        id: true,
+                        name: true,
+                    }
+                },
+                updatedBy: {
+                    select: {
+                        id: true,
+                        name: true,
+                    }
+                },
+                StockInDetail: {
+                    select: {
+                        productId: true,
+                        quantity: true,
+                    }
+                }
+            }
+        } as IQuery;
+
+        if (queryParams.page || queryParams.limit) {
+            const page = getPage(queryParams.page ?? 1, queryParams.limit ?? 10);
+            queryTable = {
+                ...queryTable,
+                skip: page.skip,
+                take: page.take,
+            }
+        }
+
+        const stocksIn = await prismaClient.stockIn.findMany(queryTable);
+        const totalRecords = await prismaClient.stockIn.count();
+
+        responseAPITable(res, {
+            status: 200,
+            message: "Stocks in retrieved successfully",
+            data: {
+                totalRecords: totalRecords,
+                data: stocksIn,
+            }
+        });
+    } catch (error) {
+        responseAPI(res, {
+            status: 500,
+            message: "Internal server error",
+        });
+    }
+}
+
+export const getAllStocksOut = async (req: Request, res: Response) => {
+    try {
+        const queryParams = req.query as QueryParams;
+        let queryTable = {
+            select: {
+                id: true,
+                stockOutCode: true,
+                date: true,
+                createdAt: true,
+                updatedAt: true,
+                store: {
+                    select: {
+                        id: true,
+                        name: true,
+                    }
+                },
+                createdBy: {
+                    select: {
+                        id: true,
+                        name: true,
+                    }
+                },
+                updatedBy: {
+                    select: {
+                        id: true,
+                        name: true,
+                    }
+                },
+                StockOutDetail: {
+                    select: {
+                        productId: true,
+                        quantity: true,
+                    }
+                }
+            }
+        } as IQuery;
+
+        if (queryParams.page || queryParams.limit) {
+            const page = getPage(queryParams.page ?? 1, queryParams.limit ?? 10);
+            queryTable = {
+                ...queryTable,
+                skip: page.skip,
+                take: page.take,
+            }
+        }
+
+        const stocksOut = await prismaClient.stockOut.findMany(queryTable);
+        const totalRecords = await prismaClient.stockOut.count();
+
+        responseAPITable(res, {
+            status: 200,
+            message: "Stocks out retrieved successfully",
+            data: {
+                totalRecords: totalRecords,
+                data: stocksOut,
+            }
+        });
+    } catch (error) {
+        responseAPI(res, {
+            status: 500,
+            message: "Internal server error",
+        });
+    }
+}
+
+export const getAllStocksMutation = async (req: Request, res: Response) => {
+    try {
+        const queryParams = req.query as QueryParams;
+        let queryTable = {
+            select: {
+                id: true,
+                stockMutationCode: true,
+                date: true,
+                createdAt: true,
+                updatedAt: true,
+                fromWarehouse: true,
+                fromStore: {
+                    select: {
+                        id: true,
+                        name: true,
+                    }
+                },
+                toStore: {
+                    select: {
+                        id: true,
+                        name: true,
+                    }
+                },
+                createdBy: {
+                    select: {
+                        id: true,
+                        name: true,
+                    }
+                },
+                updatedBy: {
+                    select: {
+                        id: true,
+                        name: true,
+                    }
+                },
+                StockMutationDetail: {
+                    select: {
+                        productId: true,
+                        quantity: true,
+                    }
+                }
+            }
+        } as IQuery;
+
+        if (queryParams.page || queryParams.limit) {
+            const page = getPage(queryParams.page ?? 1, queryParams.limit ?? 10);
+            queryTable = {
+                ...queryTable,
+                skip: page.skip,
+                take: page.take,
+            }
+        }
+
+        const stocksMutation = await prismaClient.stockMutation.findMany(queryTable);
+        const totalRecords = await prismaClient.stockMutation.count();
+
+        responseAPITable(res, {
+            status: 200,
+            message: "Stocks mutation retrieved successfully",
+            data: {
+                totalRecords: totalRecords,
+                data: stocksMutation,
+            }
+        });
+    } catch (error) {
+        responseAPI(res, {
+            status: 500,
+            message: "Internal server error",
+        });
+    }
 }
