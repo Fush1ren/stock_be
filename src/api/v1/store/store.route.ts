@@ -1,10 +1,10 @@
 import { Router } from 'express';
+import { createStore, getAllStore } from './store.controller';
 import { verifyToken } from '../../../middleware';
-import { createStore, getStore } from './store.controller';
 
-const storeRouter = Router();
+const storeRoute = Router();
 
-storeRouter.post('/', verifyToken, createStore);
-storeRouter.get('/', verifyToken, getStore); // Assuming you want to use the same controller for GET as well
+storeRoute.get('/', verifyToken, getAllStore);
+storeRoute.post('/', verifyToken, createStore);
 
-export default storeRouter;
+export default storeRoute;

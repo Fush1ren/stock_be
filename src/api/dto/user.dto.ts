@@ -5,6 +5,10 @@ export interface BodyCreateUser {
     password: string;
     photo: string | undefined;
     role: number;
-    createdBy: number;
-    updatedBy: number;
+}
+
+export interface BodyUserLogin {
+    identifier: string;
+    password: string;
+    stayLoggedIn: boolean;
 }

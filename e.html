@@ -1,0 +1,209 @@
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <title>Document</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+    </style>
+  </head>
+  <body>
+    <section
+      class="w-full min-h-screen flex justify-center items-center bg-gradient-to-br from-white to-blue-50"
+    >
+      <div
+        class="p-8 rounded-3xl border-8 border-[#00bfff] shadow-2xl w-full max-w-lg bg-white"
+      >
+        <div class="p-4 space-y-6">
+          <!-- Judul -->
+          <div class="text-center space-y-2">
+            <h1 class="text-4xl font-extrabold text-[#00bfff] drop-shadow-sm">
+              Test Potensial Akademik
+            </h1>
+            <h2 class="text-[#98e4ae] text-base font-medium">
+              Pertanyaan ini adalah langkah awal untuk menentukan jurusanmu
+            </h2>
+          </div>
+
+          <!-- Konten Kuis -->
+          <div id="quiz" class="min-h-[150px] !px-4"></div>
+
+          <!-- Tombol Navigasi -->
+          <div class="flex justify-center gap-4 pt-4">
+            <button
+              id="prev"
+              class="bg-[#98e4ae] text-white font-semibold px-5 py-2 rounded-lg border-b-4 border-emerald-500 hover:brightness-110 hover:border-t-4 hover:border-b duration-300 group relative overflow-hidden"
+            >
+              <span
+                class="absolute -top-[150%] left-0 w-80 h-1 bg-emerald-300 opacity-50 group-hover:top-[150%] duration-500 rounded"
+              ></span>
+              Prev
+            </button>
+
+            <button
+              id="next"
+              class="bg-[#00bfff] text-white font-semibold px-5 py-2 rounded-lg border-b-4 border-blue-500 hover:brightness-110 hover:border-t-4 hover:border-b duration-300 group relative overflow-hidden"
+            >
+              <span
+                class="absolute -top-[150%] left-0 w-80 h-1 bg-blue-300 opacity-50 group-hover:top-[150%] duration-500 rounded"
+              ></span>
+              Next
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </body>
+  <script>
+    const questionList = [
+      {
+        description:
+          'Pertanyaan ini adalah langkah awal untuk menentukan jurusanmu',
+        question: '1: Saya senang memecahkan masalah logika dan hitungan.',
+        options: [
+          { value: 'A' },
+          { value: 'B' },
+          { value: 'C' },
+          { value: 'D' },
+        ],
+        answer: 'A',
+      },
+      {
+        description:
+          'Pertanyaan ini adalah langkah awal untuk menentukan jurusanmu',
+        question: '2: Saya tertarik dengan cara kerja komputer atau teknologi.',
+        options: [
+          { value: 'A' },
+          { value: 'B' },
+          { value: 'C' },
+          { value: 'D' },
+        ],
+        answer: 'B',
+      },
+      {
+        description:
+          'Pertanyaan ini adalah langkah awal untuk menentukan jurusanmu',
+        question:
+          '3: Saya menikmati membaca buku tentang manusia atau psikologi.',
+        options: [
+          { value: 'A' },
+          { value: 'B' },
+          { value: 'C' },
+          { value: 'D' },
+        ],
+        answer: 'C',
+      },
+      {
+        description:
+          'Pertanyaan ini adalah langkah awal untuk menentukan jurusanmu',
+        question:
+          '4: Saya ingin membantu orang lain secara langsung, seperti di bidang kesehatan.',
+        options: [
+          { value: 'A' },
+          { value: 'B' },
+          { value: 'C' },
+          { value: 'D' },
+        ],
+        answer: 'C',
+      },
+      {
+        description:
+          'Pertanyaan ini adalah langkah awal untuk menentukan jurusanmu',
+        question: '5: Saya suka bekerja dengan data atau statistik.',
+        options: [
+          { value: 'A' },
+          { value: 'B' },
+          { value: 'C' },
+          { value: 'D' },
+        ],
+        answer: 'C',
+      },
+      {
+        description:
+          'Pertanyaan ini adalah langkah awal untuk menentukan jurusanmu',
+        question: '6: Saya tertarik pada seni atau desain visual.',
+        options: [
+          { value: 'A' },
+          { value: 'B' },
+          { value: 'C' },
+          { value: 'D' },
+        ],
+        answer: 'C',
+      },
+      {
+        description:
+          'Pertanyaan ini adalah langkah awal untuk menentukan jurusanmu',
+        question:
+          '7: Saya ingin membangun atau merancang sesuatu secara fisik.',
+        options: [
+          { value: 'A' },
+          { value: 'B' },
+          { value: 'C' },
+          { value: 'D' },
+        ],
+        answer: 'C',
+      },
+      {
+        description:
+          'Pertanyaan ini adalah langkah awal untuk menentukan jurusanmu',
+        question: '8: Saya suka berbicara atau menyampaikan ide di depan umum.',
+        options: [
+          { value: 'A' },
+          { value: 'B' },
+          { value: 'C' },
+          { value: 'D' },
+        ],
+        answer: 'C',
+      },
+      {
+        description:
+          'Pertanyaan ini adalah langkah awal untuk menentukan jurusanmu',
+        question:
+          '9: Saya menikmati menganalisis kejadian sosial atau politik.',
+        options: [
+          { value: 'A' },
+          { value: 'B' },
+          { value: 'C' },
+          { value: 'D' },
+        ],
+        answer: 'C',
+      },
+      {
+        description:
+          'Pertanyaan ini adalah langkah awal untuk menentukan jurusanmu',
+        question: '10: Saya senang belajar tentang alam, tumbuhan, atau hewan.',
+        options: [
+          { value: 'A' },
+          { value: 'B' },
+          { value: 'C' },
+          { value: 'D' },
+        ],
+        answer: 'C',
+      },
+    ];
+    document.getElementById('quiz').innerHTML = questionList
+      .slice(0, 1)
+      .map((question, index) => {
+        return `
+        <div class="question-${index} mb-4 p-4 border rounded">
+            <h2 class="text-lg font-semibold mb-2">${question.question}</h2>
+            <div class="flex flex-col gap-2">
+                ${question.options
+                  .map(
+                    (option, i) => `
+                    <input type="radio" name="question-${index}" value="${option.value}" id="option-${index}-${i}" />
+                  `,
+                  )
+                  .join('')}
+            </div>
+        </div>
+      `;
+      })
+      .join('');
+  </script>
+</html>

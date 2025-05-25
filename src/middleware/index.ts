@@ -1,6 +1,6 @@
 import { Response, NextFunction } from 'express'
 import jwt from 'jsonwebtoken'
-import { user, UserRequest } from 'src/types/userRequest'
+import { user, UserRequest } from '../types/userRequest'
 import config from '../config'
 
 export const verifyToken = (req: UserRequest, res: Response, next: NextFunction) => {

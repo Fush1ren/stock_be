@@ -1,10 +1,10 @@
 import { Router } from 'express';
+import { createCategory, getAllCategory } from './category.controller';
 import { verifyToken } from '../../../middleware';
-import { createCategory, getCategory } from './category.controller';
 
-const categoryRouter = Router();
+const categoryRoute = Router();
 
-categoryRouter.post('/', verifyToken, createCategory);
-categoryRouter.get('/', verifyToken, getCategory); // Assuming you want to use the same controller for GET as well
+categoryRoute.get('/', verifyToken, getAllCategory);
+categoryRoute.post('/', verifyToken, createCategory);
 
-export default categoryRouter;
+export default categoryRoute;

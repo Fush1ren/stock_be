@@ -1,10 +1,15 @@
 import { Request, Response, Router } from 'express';
+import { APIRoute } from '../types';
+import userRouter from './user/user.route';
 import authRouter from './auth/auth.route';
-import categoryRouter from './category/category.route';
-import usersRouter from './users/users.route';
-import storeRouter from './store/store.route';
-import productRouter from './product/product.route';
-import stockRouter from './stock/stock.route';
+import roleRouter from './role/role.route';
+import fileRouter from './file/file.route';
+import storeRoute from './store/store.route';
+import unitRoute from './unit/unit.route';
+import brandRouter from './brand/brand.route';
+import categoryRoute from './category/category.route';
+import productRoute from './product/product.route';
+import stockRoute from './stock/stock.route';
 
 const apiV1 = Router();
 
@@ -15,30 +20,46 @@ apiV1.get('/', (_req: Request, res: Response) => {
     });
 })
 
-const apiRoutes = [
+const apiRoutes: APIRoute[] = [
+    {
+        path: '/user',
+        route: userRouter,
+    },
     {
         path: '/auth',
         route: authRouter,
     },
     {
-        path: '/user',
-        route: usersRouter,
+        path: '/role',
+        route: roleRouter,
     },
     {
-        path: '/category',
-        route: categoryRouter,
+        path: '/file',
+        route: fileRouter,
     },
     {
         path: '/store',
-        route: storeRouter,
+        route: storeRoute,
+    },
+    {
+        path: '/unit',
+        route: unitRoute,
+    },
+    {
+        path: '/brand',
+        route: brandRouter,
+    },
+    {
+        path: '/category',
+        route: categoryRoute,
     },
     {
         path: '/product',
-        route: productRouter,
+        route: productRoute,
     },
     {
-        path: '/stock',
-        route: stockRouter,
+        path: 'stock',
+        route: stockRoute,
     }
 ]
 
