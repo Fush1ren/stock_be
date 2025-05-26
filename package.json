@@ -6,7 +6,8 @@
     "build": "prisma generate && tsc",
     "start": "node dist/index.js",
     "dev": "nodemon",
-    "lint": "eslint 'src/**/*.ts'"
+    "lint": "eslint 'src/**/*.ts'",
+    "postinstall": "prisma generate"
   },
   "repository": {
     "type": "git",
