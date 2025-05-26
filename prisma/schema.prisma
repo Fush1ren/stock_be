@@ -33,7 +33,7 @@ model User {
     name      String @db.VarChar(50)
     username  String @unique @db.VarChar(15)
     email     String @unique @db.VarChar(50)
-    password  String @db.VarChar(20)
+    password  String @db.VarChar(100)
     photo     Bytes? @db.ByteA
     refreshToken String? @db.VarChar(100)
     createdAt DateTime @default(now()) @db.Timestamptz()
@@ -76,7 +76,7 @@ model User {
 
 model Store {
     id        Int   @id @default(autoincrement()) @db.Integer
-    name      String @db.VarChar(25)
+    name      String @db.VarChar(25) @unique
     createdAt DateTime @default(now()) @db.Timestamptz()
     updatedAt DateTime @updatedAt @db.Timestamptz()
 
@@ -96,7 +96,7 @@ model Store {
 
 model Unit {
     id        Int   @id @default(autoincrement()) @db.Integer
-    name      String @db.VarChar(25)
+    name      String @db.VarChar(25) @unique
     createdAt DateTime @default(now()) @db.Timestamptz()
     updatedAt DateTime @updatedAt @db.Timestamptz()
 
@@ -113,7 +113,7 @@ model Unit {
 
 model Brand {
     id        Int   @id @default(autoincrement()) @db.Integer
-    name      String @db.VarChar(25)
+    name      String @db.VarChar(25) @unique
     createdAt DateTime @default(now()) @db.Timestamptz()
     updatedAt DateTime @updatedAt @db.Timestamptz()
 
@@ -129,7 +129,7 @@ model Brand {
 
 model Category {
     id        Int   @id @default(autoincrement()) @db.Integer
-    name      String @db.VarChar(25)
+    name      String @db.VarChar(25) @unique
     createdAt DateTime @default(now()) @db.Timestamptz()
     updatedAt DateTime @updatedAt @db.Timestamptz()
 
@@ -146,7 +146,7 @@ model Category {
 model Product {
     id        Int   @id @default(autoincrement()) @db.Integer
     name      String @db.VarChar(50)
-    productCode String @unique @db.VarChar(10)
+    code String @unique @db.VarChar(30)
     description String? @db.VarChar(100)
     createdAt DateTime @default(now()) @db.Timestamptz()
     updatedAt DateTime @updatedAt @db.Timestamptz()

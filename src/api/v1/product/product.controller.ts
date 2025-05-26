@@ -3,10 +3,21 @@ import { prismaClient } from "../../config";
 import { getPage, responseAPI, responseAPITable } from "../../utils";
 import { QueryParams } from "../../dto";
 import { IQuery } from "../../types/data.type";
+import { validateToken } from "../auth/auth.controller";
 
 export const createProduct = async (req: Request, res: Response) => {
     try {
-        const { name, productCode, description, userId, unitId, categoryId, brandId } = req.body;
+        const tokenHead = req.headers['authorization']?.split(' ')[1] as string;
+        const user = await validateToken(tokenHead);
+        if (!user) {
+            responseAPI(res, {
+                status: 401,
+                message: 'Unauthorized',
+            });
+            return;
+        }
+
+        const { name, code, description, userId, unitId, categoryId, brandId } = req.body;
 
         if (!name) {
             responseAPI(res, {
@@ -15,7 +26,7 @@ export const createProduct = async (req: Request, res: Response) => {
             });
         }
 
-        if (!productCode) {
+        if (!code) {
             responseAPI(res, {
                 status: 400,
                 message: "Product code is required",
@@ -50,10 +61,24 @@ export const createProduct = async (req: Request, res: Response) => {
             });
         }
 
+        const existingProduct = await prismaClient.product.findUnique({
+            where: {
+                code: code,
+            },
+        });
+
+        if (existingProduct) {
+            responseAPI(res, {
+                status: 400,
+                message: "Product with this code already exists",
+            });
+            return;
+        }
+
         await prismaClient.product.create({
             data: {
                 name: name,
-                productCode: productCode,
+                code: code,
                 description: description || null,
                 category: {
                     connect: {
@@ -102,7 +127,7 @@ export const getAllProducts = async (req: Request, res: Response) => {
             select: {
                 id: true,
                 name: true,
-                productCode: true,
+                code: true,
                 description: true,
                 createdAt: true,
                 updatedAt: true,
@@ -140,7 +165,9 @@ export const getAllProducts = async (req: Request, res: Response) => {
         } as IQuery;
 
         if (queryParams.page || queryParams.limit) {
-            const page = getPage(queryParams.page ?? 1, queryParams.limit ?? 10);
+            const paramPage = queryParams.page ? Number(queryParams.page) : 1;
+            const paramLimit = queryParams.limit ? Number(queryParams.limit) : 10;
+            const page = getPage(paramPage,paramLimit);
             queryTable = {
                 ...queryTable,
                 skip: page.skip,

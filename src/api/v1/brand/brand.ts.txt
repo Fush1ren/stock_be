@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { getPage, responseAPI, responseAPIData, responseAPITable } from "../../utils";
+import { getPage, responseAPI, responseAPITable } from "../../utils";
 import { prismaClient } from "../../config";
 import { QueryParams } from "../../dto";
 import { IQuery } from "../../types/data.type";
@@ -11,45 +11,62 @@ export const createBrand = async (req: Request, res: Response) => {
         const tokenHead = req.headers['authorization']?.split(' ')[1] as string;
         const user = await validateToken(tokenHead);
         if (!user) {
-            return responseAPI(res, {
+            responseAPI(res, {
                 status: 401,
                 message: 'Unauthorized',
             });
+            return;
         }
 
-        const body = req.body as BodyCreateBrand;
+        const body = req.body as BodyCreateBrand[];
 
-        if (!body.name) {
-            return responseAPI(res, {
+        if (!body || body.length === 0) {
+            responseAPI(res, {
                 status: 400,
-                message: 'Name is required!',
+                message: 'No data provided',
             });
         }
 
-        const existingBrand = await prismaClient.brand.findUnique({
+        const invalidItem = body.find(
+            item => typeof item !== 'object' || typeof item.name !== 'string' || item.name.trim() === ''
+        )
+
+        if (invalidItem) {
+            responseAPI(res, {
+                status: 400,
+                message: 'Invalid data format. Each item must be an object with a non-empty "name" string.',
+            });
+        }
+
+        const inputNames = body.map(p => p.name.trim().toLowerCase())
+
+        const existing = await prismaClient.product.findMany({
             where: {
-                name: body.name.trim(),
-            },
+                name: {
+                    in: inputNames,
+                    mode: 'insensitive', // agar tidak case sensitive
+                },
+            }
         });
 
-        if (existingBrand) {
+        if (existing.length > 0) {
             return responseAPI(res, {
                 status: 400,
                 message: 'Brand already exists!',
             });
         }
 
-        await prismaClient.brand.create({
-            data: {
-                name: body.name.trim(),
-                createdBy: {
-                    connect: { id: user.id },
+        await Promise.all(
+            body.map(item =>
+            prismaClient.brand.create({
+                data: {
+                    name: item.name.trim(),
+                    createdBy: { connect: { id: user.id } },
+                    updatedBy: { connect: { id: user.id } },
                 },
-                updatedBy: {
-                    connect: { id: user.id },
-                },
-            },
-        });
+            })
+            )
+        );
 
         responseAPI(res, {
             status: 200,
@@ -70,7 +87,6 @@ export const getAllBrand = async (req: Request, res: Response) => {
             select: {
                 id: true,
                 name: true,
-                code: true,
                 createdAt: true,
                 updatedAt: true,
                 createdBy: {
@@ -110,28 +126,6 @@ export const getAllBrand = async (req: Request, res: Response) => {
             },
         });
 
-    } catch (error) {
-        responseAPI(res, {
-            status: 500,
-            message: 'Internal server error',
-        });
-    }
-}
-
-export const getBrandDropdown = async (_req: Request, res: Response) => {
-    try {
-        const brands = await prismaClient.brand.findMany({
-            select: {
-                id: true,
-                name: true,
-            },
-        });
-
-        responseAPIData(res, {
-            status: 200,
-            message: 'Get brand dropdown successfully',
-            data: brands,
-        });
     } catch (error) {
         responseAPI(res, {
             status: 500,

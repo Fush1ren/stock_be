@@ -4,6 +4,7 @@ import { getPage, responseAPI, responseAPITable } from "../../utils";
 import { prismaClient } from "../../config";
 import { QueryParams } from "../../dto";
 import { IQuery } from "../../types/data.type";
+import bcrypt from 'bcryptjs'
 
 export const createUser = async (req: Request, res: Response) => {
     try {
@@ -47,14 +48,41 @@ export const createUser = async (req: Request, res: Response) => {
             });
         }
 
+        const existingUser = await prismaClient.user.findUnique({
+            where: {
+                username: body.username,
+            },
+        });
+        if (existingUser) {
+            return responseAPI(res, {
+                status: 400,
+                message: 'Username already exists!',
+            });
+        }
+
+        const existingEmail = await prismaClient.user.findUnique({
+            where: {
+                email: body.email,
+            },
+        });
+        
+        if (existingEmail) {
+            return responseAPI(res, {
+                status: 400,
+                message: 'Email already exists!',
+            });
+        }
+
         const imageBuffer = req.file ? req.file.buffer : null;
+
+        const hashed = await bcrypt.hash(body.password, 10)
 
         await prismaClient.user.create({
             data: {
                 name: body.name,
                 username: body.username,
                 email: body.email,
-                password: body.password,
+                password: hashed,
                 photo: imageBuffer,
                 refreshToken: null,
                 createdBy: {
@@ -105,7 +133,9 @@ export const getAllUser = async (req: Request, res: Response) => {
             },
         } as IQuery;
         if (queryParams.page || queryParams.limit) {
-            const page = getPage(queryParams.page ?? 1, queryParams.limit ?? 10);
+            const paramPage = queryParams.page ? Number(queryParams.page) : 1;
+            const paramLimit = queryParams.limit ? Number(queryParams.limit) : 10;
+            const page = getPage(paramPage,paramLimit);
             queryTable = {
                 ...queryTable,
                 skip: page.skip,
@@ -122,6 +152,31 @@ export const getAllUser = async (req: Request, res: Response) => {
                 totalRecords: totalRecords,
                 data: users,
             },
+        })
+    } catch (error) {
+        res.status(403);
+    }
+}
+
+export const updateUser = async (req: Request, res: Response) => {
+    try {
+       const { id, password } = req.body;
+        if (!req.body) {
+            responseAPI(res, {status: 400, message: "No data provided"});
+        };
+
+        const hashed = await bcrypt.hash(password, 10)
+
+        await prismaClient.user.update({
+            where: { id: Number(id) },
+            data: {
+                password: hashed,
+            }
+        })
+        
+        responseAPI(res, {
+            status: 200,
+            message: 'User updated successfully',
         })
     } catch (error) {
         res.status(403);

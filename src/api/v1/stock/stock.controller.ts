@@ -221,13 +221,30 @@ export const createStockIn = async (req: Request, res: Response) => {
                     status: 400,
                     message: "Product ID is required",
                 });
+                return;
             }
             if (!product.quantity) {
                 responseAPI(res, {
                     status: 400,
                     message: "Quantity is required",
+                });
+                return;
+            }
+        });
+
+        const existingStockIn = await prismaClient.stockIn.findUnique({
+            where: {
+                stockInCode: stockInCode,
+            },
+        });
+
+        if (existingStockIn) {
+            responseAPI(res, {
+                status: 400,
+                message: "Stock in with this code already exists",
             });
-        }});
+            return;
+        }
 
         await prismaClient.stockIn.create(queryTable);
         responseAPI(res, {
@@ -312,13 +329,29 @@ export const createStockOut = async (req: Request, res: Response) => {
                     status: 400,
                     message: "Product ID is required",
                 });
+                return;
             }
             if (!product.quantity) {
                 responseAPI(res, {
                     status: 400,
                     message: "Quantity is required",
+                });
+                return;
+            }   
+        });
+
+        const existingStockOut = await prismaClient.stockOut.findUnique({
+            where: {
+                stockOutCode: stockOutCode,
+            },
+        });
+        if (existingStockOut) {
+            responseAPI(res, {
+                status: 400,
+                message: "Stock out with this code already exists",
             });
-        }});
+            return;
+        }
 
         await prismaClient.stockOut.create(queryTable);
         responseAPI(res, {
@@ -428,14 +461,30 @@ export const createStockMutation = async (req: Request, res: Response) => {
                     status: 400,
                     message: "Product ID is required",
                 });
+                return;
             }
             if (!product.quantity) {
                 responseAPI(res, {
                     status: 400,
                     message: "Quantity is required",
                 });
+                return;
             }
         });
+
+        const existingStockMutation = await prismaClient.stockMutation.findUnique({
+            where: {
+                stockMutationCode: stockMutationCode,
+            },
+        });
+
+        if (existingStockMutation) {
+            responseAPI(res, {
+                status: 400,
+                message: "Stock mutation with this code already exists",
+            });
+            return;
+        }
 
         // Logic to create stock mutation goes here
         await prismaClient.stockMutation.create(queryTable);
@@ -490,7 +539,9 @@ export const getAllStoreStocks = async (req: Request, res: Response) => {
         } as IQuery;
 
         if (queryParams.page || queryParams.limit) {
-            const page = getPage(queryParams.page ?? 1, queryParams.limit ?? 10);
+            const paramPage = queryParams.page ? Number(queryParams.page) : 1;
+            const paramLimit = queryParams.limit ? Number(queryParams.limit) : 10;
+            const page = getPage(paramPage,paramLimit);
             queryTable = {
                 ...queryTable,
                 skip: page.skip,
@@ -549,7 +600,9 @@ export const getAllWarehouseStocks = async (req: Request, res: Response) => {
         } as IQuery;
 
         if (queryParams.page || queryParams.limit) {
-            const page = getPage(queryParams.page ?? 1, queryParams.limit ?? 10);
+            const paramPage = queryParams.page ? Number(queryParams.page) : 1;
+            const paramLimit = queryParams.limit ? Number(queryParams.limit) : 10;
+            const page = getPage(paramPage,paramLimit);
             queryTable = {
                 ...queryTable,
                 skip: page.skip,
@@ -615,7 +668,9 @@ export const getAllStocksIn = async (req: Request, res: Response) => {
         } as IQuery;
 
         if (queryParams.page || queryParams.limit) {
-            const page = getPage(queryParams.page ?? 1, queryParams.limit ?? 10);
+            const paramPage = queryParams.page ? Number(queryParams.page) : 1;
+            const paramLimit = queryParams.limit ? Number(queryParams.limit) : 10;
+            const page = getPage(paramPage,paramLimit);
             queryTable = {
                 ...queryTable,
                 skip: page.skip,
@@ -680,7 +735,9 @@ export const getAllStocksOut = async (req: Request, res: Response) => {
         } as IQuery;
 
         if (queryParams.page || queryParams.limit) {
-            const page = getPage(queryParams.page ?? 1, queryParams.limit ?? 10);
+            const paramPage = queryParams.page ? Number(queryParams.page) : 1;
+            const paramLimit = queryParams.limit ? Number(queryParams.limit) : 10;
+            const page = getPage(paramPage,paramLimit);
             queryTable = {
                 ...queryTable,
                 skip: page.skip,
@@ -752,7 +809,9 @@ export const getAllStocksMutation = async (req: Request, res: Response) => {
         } as IQuery;
 
         if (queryParams.page || queryParams.limit) {
-            const page = getPage(queryParams.page ?? 1, queryParams.limit ?? 10);
+            const paramPage = queryParams.page ? Number(queryParams.page) : 1;
+            const paramLimit = queryParams.limit ? Number(queryParams.limit) : 10;
+            const page = getPage(paramPage,paramLimit);
             queryTable = {
                 ...queryTable,
                 skip: page.skip,

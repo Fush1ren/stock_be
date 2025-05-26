@@ -72,7 +72,9 @@ export const getAllUnit = async (req: Request, res: Response) => {
              }
         } as IQuery;
          if (queryParams.page || queryParams.limit) {
-            const page = getPage(queryParams.page ?? 1, queryParams.limit ?? 10);
+            const paramPage = queryParams.page ? Number(queryParams.page) : 1;
+            const paramLimit = queryParams.limit ? Number(queryParams.limit) : 10;
+            const page = getPage(paramPage,paramLimit);
             queryTable = {
                 ...queryTable,
                 skip: page.skip,
@@ -88,6 +90,27 @@ export const getAllUnit = async (req: Request, res: Response) => {
                 totalRecords,
                 data: units,
             },
+        });
+    } catch (error) {
+        responseAPI(res, {
+            status: 500,
+            message: 'Internal server error',
+        });
+    }
+}
+
+export const getUnitDropdown = async (_req: Request, res: Response) => {
+    try {
+        const units = await prismaClient.unit.findMany({
+            select: {
+                id: true,
+                name: true,
+            },
+        });
+        responseAPIData(res, {
+            status: 200,
+            message: 'Units dropdown retrieved successfully',
+            data: units,
         });
     } catch (error) {
         responseAPI(res, {
