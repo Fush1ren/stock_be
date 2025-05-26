@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { getPage, responseAPI, responseAPITable } from "../../utils";
+import { getPage, responseAPI, responseAPIData, responseAPITable } from "../../utils";
 import { prismaClient } from "../../config";
 import { QueryParams } from "../../dto";
 import { IQuery } from "../../types/data.type";
@@ -12,6 +12,19 @@ export const createCategory = async (req: Request, res: Response) => {
             return responseAPI(res, {
                 status: 400,
                 message: "Name is required",
+            });
+        }
+
+        const existingCategory = await prismaClient.category.findUnique({
+            where: {
+                name: name,
+            },
+        });
+
+        if (existingCategory) {
+            return responseAPI(res, {
+                status: 400,
+                message: "Category already exists",
             });
         }
 
@@ -50,6 +63,7 @@ export const getAllCategory = async (req: Request, res: Response) => {
             select: {
                 id: true,
                 name: true,
+                code: true,
                 createdAt: true,
                 updatedAt: true,
                 createdBy: {
@@ -68,7 +82,9 @@ export const getAllCategory = async (req: Request, res: Response) => {
         } as IQuery;
 
        if (queryParams.page || queryParams.limit) {
-            const page = getPage(queryParams.page ?? 1, queryParams.limit ?? 10);
+            const paramPage = queryParams.page ? Number(queryParams.page) : 1;
+            const paramLimit = queryParams.limit ? Number(queryParams.limit) : 10;
+            const page = getPage(paramPage,paramLimit);
             queryTable = {
                 ...queryTable,
                 skip: page.skip,
@@ -86,6 +102,28 @@ export const getAllCategory = async (req: Request, res: Response) => {
                 totalRecords,
                 data: categories
             }
+        });
+    } catch (error) {
+        responseAPI(res, {
+            status: 500,
+            message: "Internal server error",
+        });
+    }
+}
+
+export const getCategoryDropdown = async (_req: Request, res: Response) => {
+    try {
+        const categories = await prismaClient.category.findMany({
+            select: {
+                id: true,
+                name: true,
+            },
+        });
+
+        responseAPIData(res, {
+            status: 200,
+            message: "Categories fetched successfully",
+            data: categories,
         });
     } catch (error) {
         responseAPI(res, {

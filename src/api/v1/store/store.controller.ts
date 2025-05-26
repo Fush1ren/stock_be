@@ -15,6 +15,20 @@ export const createStore = async (req: Request, res: Response) => {
             });
         }
 
+        const existingStore = await prismaClient.store.findUnique({
+            where: {
+                name: name,
+            },
+        });
+
+        if (existingStore) {
+            responseAPI(res, {
+                status: 400,
+                message: "Store already exists",
+            });
+            return;
+        }
+
         await prismaClient.store.create({
             data: {
                 name: name,
@@ -69,7 +83,9 @@ export const getAllStore = async (req: Request, res: Response) => {
             }
         } as IQuery;
         if (queryParams.page || queryParams.limit) {
-            const page = getPage(queryParams.page ?? 1, queryParams.limit ?? 10);
+            const paramPage = queryParams.page ? Number(queryParams.page) : 1;
+            const paramLimit = queryParams.limit ? Number(queryParams.limit) : 10;
+            const page = getPage(paramPage,paramLimit);
             queryTable = {
                 ...queryTable,
                 skip: page.skip,

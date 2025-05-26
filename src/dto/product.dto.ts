@@ -1,11 +1,9 @@
-type BodyCreateProduct = {
+export interface BodyCreateProduct {
     name: string;
+    productCode: string;
     description: string;
-    unit: string;
-    status: string;
+    userId: string;
+    unitId: string;
     categoryId: string;
-}
-
-export {
-    BodyCreateProduct,
+    brandId: string;
 }

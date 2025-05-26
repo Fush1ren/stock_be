@@ -9,13 +9,13 @@ import { Payload, Token, User } from '../../types'
 
 const generateAccessToken = (userId: number) => {
     return jwt.sign({ userId }, config.jwtSecret, { expiresIn: '1h' }) // 1 hour
-  }
+}
   
 const generateRefreshToken = (userId: number) => {
     return jwt.sign({ userId }, config.refreshTokenSecret, { expiresIn: '7d' }) // 7 days
 }
 
-const checkToken = (token: string): number | null => {
+export const checkToken = (token: string): number | null => {
     const decodedAccessToken = jwt.verify(token, config.jwtSecret) as Payload;
     if (decodedAccessToken) {
         return decodedAccessToken.userId;
@@ -27,7 +27,7 @@ const checkToken = (token: string): number | null => {
     return decodedRefreshToken.userId;
 }
 
-const validateToken = async (token: string): Promise<User | null> => {
+export const validateToken = async (token: string): Promise<User | null> => {
     try {
         const userId = checkToken(token);
         if (!userId) {
@@ -79,11 +79,13 @@ export const login = async (req: Request, res: Response) => {
                     status: 200,
                     message: 'User already logged in',
                 })
+                return;
             }
             responseAPI(res, {
                 status: 401,
                 message: 'Token is Expired',
             })
+            return;
         }
         const body = req.body as BodyUserLogin;
         if (!body) {
@@ -114,6 +116,7 @@ export const login = async (req: Request, res: Response) => {
                 status: 401,
                 message: 'Your username or email is incorrect',
             })
+            return;
         }
         const isPasswordValid = await bcrypt.compare(body.password, user?.password as string);
         if (!isPasswordValid) {
@@ -121,6 +124,7 @@ export const login = async (req: Request, res: Response) => {
                 status: 401,
                 message: 'Your password is incorrect',
             })
+            return;
         }
 
         const token = generateAccessToken(user?.id as number);
