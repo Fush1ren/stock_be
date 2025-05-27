@@ -122,3 +122,98 @@ export const getAllStore = async (req: Request, res: Response) => {
         })
     }
 }
+
+export const updateStore = async (req: Request, res: Response) => {
+    try {
+        const tokenHead = req.headers['authorization']?.split(' ')[1] as string;
+        const user = await validateToken(tokenHead);
+        if (!user) {
+            responseAPI(res, {
+                status: 401,
+                message: 'Unauthorized',
+            });
+            return;
+        }
+
+        const body = req.body as { id: number; name: string; };
+
+        if (!body || !body.id || !body.name) {
+            responseAPI(res, {
+                status: 400,
+                message: "ID and Name are required",
+            });
+            return;
+        }
+        
+        const existingStore = await prismaClient.store.findFirst({
+            where: {
+                id: body.id,
+            },
+            select: {
+                id: true,
+            }
+        });
+
+         // Check if the store exists
+        if (!existingStore) {
+            responseAPI(res, {
+                status: 404,
+                message: "Store not found",
+            });
+            return;
+        }
+        
+        await prismaClient.store.update({
+            where: { id: body.id },
+            data: {
+                name: body.name.trim(),
+                updatedBy: {
+                    connect: { id: user.id },
+                },
+            },
+        }); // Respond with success message
+
+        responseAPI(res, {
+            status: 200,
+            message: "Store updated successfully",
+        });
+
+    } catch (error) {
+        responseAPI(res, {
+            status: 500,
+            message: 'Internal server error',
+        });
+    }
+}
+
+export const deleteStore = async (req: Request, res: Response) => {
+    try {
+        const body = req.body as { id: number[] };
+
+        if (!body || !body.id || body.id.length === 0) {
+            responseAPI(res, {
+                status: 400,
+                message: "ID is required",
+            });
+            return;
+        }
+
+        await Promise.all(
+            body.id.map(id => 
+                prismaClient.store.delete({
+                    where: { id: id },
+                })
+            )
+        ); // Delete multiple stores
+
+        responseAPI(res, {
+            status: 200,
+            message: "Store deleted successfully",
+        });
+    } catch (error) {
+        responseAPI(res, {
+            status: 500,
+            message: 'Internal server error',
+        });
+    }
+}

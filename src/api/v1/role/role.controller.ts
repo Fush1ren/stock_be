@@ -1,8 +1,9 @@
 import { Request, Response } from "express";
-import { getPage, responseAPI, responseAPITable } from "../../utils";
+import { getPage, responseAPI, responseAPIData, responseAPITable } from "../../utils";
 import { prismaClient } from "../../config";
 import { QueryParams } from "../../dto";
 import { IQuery } from "../../types/data.type";
+import { validateToken } from "../auth/auth.controller";
 
 export const createRole = async (req: Request, response: Response) => {
     try {
@@ -104,6 +105,109 @@ export const getAllRole = async (req: Request, response: Response) => {
         });
     } catch (error) {
         responseAPI(response, {
+            status: 500,
+            message: "Internal server error",
+        });
+    }
+}
+
+export const updateRole = async (req: Request, res: Response) => {
+    try {
+        const tokenHead = req.headers['authorization']?.split(' ')[1] as string;
+        const user = await validateToken(tokenHead);
+        if (!user) {
+            responseAPI(res, {
+                status: 401,
+                message: 'Unauthorized',
+            });
+            return;
+        }
+        const body = req.body as { id: number; name: string; }[];
+
+        if (!body || body.length === 0) {
+            responseAPI(res, {
+                status: 400,
+                message: 'No data provided',
+            });
+            return;
+        }
+
+        await Promise.all(
+            body.map(role => 
+                prismaClient.role.update({
+                    where: { id: role.id },
+                    data: {
+                        name: role.name,
+                        updatedBy: {
+                            connect: {
+                                id: user.id,
+                            }
+                        },
+                    },
+                })
+            )
+        ); // Update multiple roles
+
+        responseAPI(res, {
+            status: 200,
+            message: "Role updated successfully",
+        });
+    } catch (error) {
+        responseAPI(res, {
+            status: 500,
+            message: "Internal server error",
+        });
+    }
+}
+
+export const getRoleDropdown = async (_req: Request, res: Response) => {
+    try {
+        const roles = await prismaClient.role.findMany({
+            select: {
+                id: true,
+                name: true,
+            },
+        });
+
+        responseAPIData(res, {
+            status: 200,
+            message: "Roles retrieved successfully",
+            data: roles,
+        });
+    } catch (error) {
+        responseAPI(res, {
+            status: 500,
+            message: "Internal server error",
+        });
+    }
+}
+
+export const deleteRole = async (req: Request, res: Response) => {
+    try {
+        const body = req.body as { id: number[] };
+
+        if (!body) {
+            responseAPI(res, {
+                status: 400,
+                message: 'No data provided',
+            });
+            return;
+        }
+
+        await Promise.all(
+            body.id.map(id => 
+                prismaClient.role.delete({
+                    where: { id: id },
+                }
+            )
+        )); // Delete multiple roles by ID
+
+        responseAPI(res, {
+            status: 200,
+            message: "Role deleted successfully",
+        });
+    } catch (error) {
+        responseAPI(res, {
             status: 500,
             message: "Internal server error",
         });

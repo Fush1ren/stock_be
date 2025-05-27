@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { createBrand, getAllBrand, getBrandDropdown } from './brand.controller';
+import { createBrand, deleteBrand, getAllBrand, getBrandDropdown, updateBrand } from './brand.controller';
 import { verifyToken } from '../../../middleware';
 
 const brandRouter = Router();
@@ -7,5 +7,7 @@ const brandRouter = Router();
 brandRouter.get('/', verifyToken, getAllBrand);
 brandRouter.get('/dropdown', verifyToken, getBrandDropdown);
 brandRouter.post('/', verifyToken, createBrand);
+brandRouter.put('/', verifyToken, updateBrand); // Assuming updateBrand is similar to createBrand
+brandRouter.delete('/', verifyToken, deleteBrand); // Assuming deleteBrand is similar to updateBrand
 
 export default brandRouter;

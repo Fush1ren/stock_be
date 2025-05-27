@@ -67,6 +67,119 @@ export const createCategory = async (req: Request, res: Response) => {
     }
 }
 
+export const deleteCategory = async (req: Request, res: Response) => {
+    try {
+        const tokenHead = req.headers['authorization']?.split(' ')[1] as string;
+        const user = await validateToken(tokenHead);
+        if (!user) {
+            responseAPI(res, {
+                status: 401,
+                message: 'Unauthorized',
+            });
+            return;
+        }
+
+        const { id } = req.body as { id: string[] };
+
+        if (!id || id.length === 0) {
+            responseAPI(res, {
+                status: 400,
+                message: "Category ID is required",
+            });
+            return;
+        }
+
+
+        const existingCategory = await prismaClient.category.findMany({
+            where: { id: {
+                in: id.map(item => Number(item)),
+            } },
+        });
+
+        if (!existingCategory || existingCategory.length === 0) {
+            return responseAPI(res, {
+                status: 404,
+                message: "Category not found",
+            });
+        }
+
+        await Promise.all(
+            id.map(categoryId => 
+                prismaClient.category.delete({
+                    where: { id: Number(categoryId) },
+                })
+
+        ));
+
+
+        responseAPI(res, {
+            status: 200,
+            message: "Category deleted successfully",
+        });
+    } catch (error) {
+        responseAPI(res, {
+            status: 500,
+            message: "Internal server error",
+        });
+    }
+}
+
+export const updateCategory = async (req: Request, res: Response) => {
+    try {
+        const tokenHead = req.headers['authorization']?.split(' ')[1] as string;
+        const user = await validateToken(tokenHead);
+        if (!user) {
+            responseAPI(res, {
+                status: 401,
+                message: 'Unauthorized',
+            });
+            return;
+        }
+
+        const body = req.body as { id: number, name: string };
+
+        if (!body || !body.id || !body.name) {
+            return responseAPI(res, {
+                status: 400,
+                message: "Invalid request body",
+            });
+        }
+
+        const existingCategory = await prismaClient.category.findFirst({
+            where: { 
+                id: body.id
+            },
+        });
+
+        if (!existingCategory) {
+            return responseAPI(res, {
+                status: 404,
+                message: "Category not found",
+            });
+        }
+
+        await prismaClient.category.update({
+            where: { id: body.id },
+            data: {
+                name: body.name.trim(),
+                updatedBy: {
+                    connect: { id: user.id },
+                },
+            },
+        });
+
+        responseAPI(res, {
+            status: 200,
+            message: "Category updated successfully",
+        });
+    } catch (error) {
+        responseAPI(res, {
+            status: 500,
+            message: "Internal server error",
+        });
+    }
+}
+
 export const getAllCategory = async (req: Request, res: Response) => {
     try {
         const queryParams = req.query as QueryParams;
