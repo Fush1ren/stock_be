@@ -3,35 +3,37 @@ import { getPage, responseAPI, responseAPIData } from "../../utils";
 import { prismaClient } from "../../config";
 import { QueryParams } from "../../dto";
 import { IQuery } from "../../types/data.type";
+import { validateToken } from "../auth/auth.controller";
 
 export const createUnit = async (req: Request, res: Response) => {
     try {
-        const { name, userId } = req.body;
+        const tokenHead = req.headers['authorization']?.split(' ')[1] as string;
+        const user = await validateToken(tokenHead);
+        if (!user) {
+            responseAPI(res, {
+                status: 401,
+                message: 'Unauthorized',
+            });
+            return;
+        }
+        const { name } = req.body;
         if (!name) {
             responseAPI(res, {
                 status: 400,
                 message: 'Name is required!',
             });
         }
-
-        if (!userId) {
-            responseAPI(res, {
-                status: 400,
-                message: 'User Id is required!',
-            });
-        }
-
         await prismaClient.unit.create({
             data: {
                 name,
                 createdBy: {
                     connect: {
-                        id: userId,
+                        id: user.id,
                     }
                 },
                 updatedBy: {
                     connect: {
-                        id: userId,
+                        id: user.id,
                     }
                 }
             }

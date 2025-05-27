@@ -4,10 +4,21 @@ import { prismaClient } from "../../config";
 import { InsertUpdateQuery, IQuery } from "../../types/data.type";
 import { BodyCreateStockIn, BodyCreateStockMutation, BodyCreateStockOut, BodyCreateStoreStock, BodyCreateWareHouseStock } from "../../../dto/stock.dto";
 import { QueryParams } from "../../dto";
+import { validateToken } from "../auth/auth.controller";
 
 export const createStoreStock = async (req: Request, res: Response) => {
     try {
-        const { quantity, status, storeId, productId, userId } = req.body as BodyCreateStoreStock;
+        const tokenHead = req.headers['authorization']?.split(' ')[1] as string;
+        const user = await validateToken(tokenHead);
+        if (!user) {
+            responseAPI(res, {
+                status: 401,
+                message: 'Unauthorized',
+            });
+            return;
+        }
+        
+        const { quantity, status, storeId, productId } = req.body as BodyCreateStoreStock;
 
         if (!quantity) {
             responseAPI(res, {
@@ -37,13 +48,6 @@ export const createStoreStock = async (req: Request, res: Response) => {
             });
         }
 
-        if (!userId) {
-            responseAPI(res, {
-                status: 400,
-                message: "User ID is required",
-            });
-        }
-
         await prismaClient.storeStock.create({
             data: {
                 quantity: quantity,
@@ -60,12 +64,12 @@ export const createStoreStock = async (req: Request, res: Response) => {
                 },
                 createdBy: {
                     connect: {
-                        id: userId,
+                        id: user.id,
                     }
                 },
                 updatedBy: {
                     connect: {
-                        id: userId,
+                        id: user.id,
                     }
                 },
             },
@@ -80,7 +84,16 @@ export const createStoreStock = async (req: Request, res: Response) => {
 
 export const createWarehouseStock = async (req: Request, res: Response) => {
     try {
-        const { quantity, status, productId, userId } = req.body as BodyCreateWareHouseStock;
+        const tokenHead = req.headers['authorization']?.split(' ')[1] as string;
+        const user = await validateToken(tokenHead);
+        if (!user) {
+            responseAPI(res, {
+                status: 401,
+                message: 'Unauthorized',
+            });
+            return;
+        }
+        const { quantity, status, productId } = req.body as BodyCreateWareHouseStock;
 
         if (!quantity) {
             responseAPI(res, {
@@ -103,13 +116,6 @@ export const createWarehouseStock = async (req: Request, res: Response) => {
             });
         }
 
-        if (!userId) {
-            responseAPI(res, {
-                status: 400,
-                message: "User ID is required",
-            });
-        }
-
         await prismaClient.wareHouseStock.create({
             data: {
                 quantity: quantity,
@@ -121,12 +127,12 @@ export const createWarehouseStock = async (req: Request, res: Response) => {
                 },
                 createdBy: {
                     connect: {
-                        id: userId,
+                        id: user.id,
                     }
                 },
                 updatedBy: {
                     connect: {
-                        id: userId,
+                        id: user.id,
                     }
                 },
             },
@@ -146,7 +152,16 @@ export const createWarehouseStock = async (req: Request, res: Response) => {
 
 export const createStockIn = async (req: Request, res: Response) => {
     try {
-        const { stockInCode, date, toWarehouse, storeId, userId, products } = req.body as BodyCreateStockIn;
+        const tokenHead = req.headers['authorization']?.split(' ')[1] as string;
+        const user = await validateToken(tokenHead);
+        if (!user) {
+            responseAPI(res, {
+                status: 401,
+                message: 'Unauthorized',
+            });
+            return;
+        }
+        const { stockInCode, date, toWarehouse, storeId, products } = req.body as BodyCreateStockIn;
 
         const queryTable =             {
             data: {
@@ -154,12 +169,12 @@ export const createStockIn = async (req: Request, res: Response) => {
                 date: new Date(date),
                 createdBy: {
                     connect: {
-                        id: userId,
+                        id: user.id,
                     }
                 },
                 updatedBy: {
                     connect: {
-                        id: userId,
+                        id: user.id,
                     }
                 },
                 StockInDetail: {
@@ -199,13 +214,6 @@ export const createStockIn = async (req: Request, res: Response) => {
                     id: storeId,
                 }
             };
-        }
-
-        if (!userId) {
-            responseAPI(res, {
-                status: 400,
-                message: "User ID is required",
-            });
         }
 
         if (!products || products.length === 0) {
@@ -261,7 +269,16 @@ export const createStockIn = async (req: Request, res: Response) => {
 
 export const createStockOut = async (req: Request, res: Response) => {
     try {
-        const { stockOutCode, date, storeId, userId, products } = req.body as BodyCreateStockOut;
+        const tokenHead = req.headers['authorization']?.split(' ')[1] as string;
+        const user = await validateToken(tokenHead);
+        if (!user) {
+            responseAPI(res, {
+                status: 401,
+                message: 'Unauthorized',
+            });
+            return;
+        }
+        const { stockOutCode, date, storeId, products } = req.body as BodyCreateStockOut;
 
         const queryTable = {
             data: {
@@ -269,12 +286,12 @@ export const createStockOut = async (req: Request, res: Response) => {
                 date: new Date(date),
                 createdBy: {
                     connect: {
-                        id: userId,
+                        id: user.id,
                     }
                 },
                 updatedBy: {
                     connect: {
-                        id: userId,
+                        id: user.id,
                     }
                 },
                 StockOutDetail: {
@@ -306,13 +323,6 @@ export const createStockOut = async (req: Request, res: Response) => {
             responseAPI(res, {
                 status: 400,
                 message: "Store ID is required",
-            });
-        }
-        
-        if (!userId) {
-            responseAPI(res, {
-                status: 400,
-                message: "User ID is required",
             });
         }
 

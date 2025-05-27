@@ -5,6 +5,4 @@ export interface BodyCreateUser {
     password: string;
     photo: string | undefined;
     role: number;
-    createdBy: number;
-    updatedBy: number;
 }
