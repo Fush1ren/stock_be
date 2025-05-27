@@ -4,6 +4,7 @@ import { getPage, responseAPI, responseAPITable } from "../../utils";
 import { QueryParams } from "../../dto";
 import { IQuery } from "../../types/data.type";
 import { validateToken } from "../auth/auth.controller";
+import { BodyCreateProduct } from "../../../dto/product.dto";
 
 export const createProduct = async (req: Request, res: Response) => {
     try {
@@ -17,96 +18,162 @@ export const createProduct = async (req: Request, res: Response) => {
             return;
         }
 
-        const { name, code, description, userId, unitId, categoryId, brandId } = req.body;
+        const body = req.body as BodyCreateProduct[];
 
-        if (!name) {
+        if (!body || body.length === 0) {
+            responseAPI(res, {
+                status: 400,
+                message: 'No data provided',
+            });
+        }
+
+        const invalidName = body.find(
+            item => typeof item.name !== 'string' || item.name.trim() === ''
+        )
+
+        const invalidCode = body.find(
+            item => typeof item.code !== 'string' || item.code.trim() === ''
+        )
+
+        const invalidCategoryId = body.find(
+            item => typeof item.categoryId !== 'number'
+        )
+
+        const invalidUnitId = body.find(
+            item => typeof item.unitId !== 'number'
+        )
+
+        const invalidBrandId = body.find(
+            item => typeof item.brandId !== 'number'
+        )
+
+        if (invalidName) {
             responseAPI(res, {
                 status: 400,
                 message: "Name is required",
             });
         }
 
-        if (!code) {
+        if (!invalidCode) {
             responseAPI(res, {
                 status: 400,
                 message: "Product code is required",
             });
         }
 
-        if (!userId) {
-            responseAPI(res, {
-                status: 400,
-                message: "User ID is required",
-            });
-        }
-
-        if (!categoryId) {
+        if (!invalidCategoryId) {
             responseAPI(res, {
                 status: 400,
                 message: "Category ID is required",
             });
         }
 
-        if (!unitId) {
+        if (!invalidUnitId) {
             responseAPI(res, {
                 status: 400,
                 message: "Unit ID is required",
             });
         }
 
-        if (!brandId) {
+        if (!invalidBrandId) {
             responseAPI(res, {
                 status: 400,
                 message: "Brand ID is required",
             });
         }
 
-        const existingProduct = await prismaClient.product.findUnique({
+        const name = body.map(item => item.name.trim());
+        const code = body.map(item => item.code.trim());
+
+        const existingProduct = await prismaClient.product.findMany({
             where: {
-                code: code,
+                OR: [
+                        {
+                            name: 
+                                {
+                                    in: name,
+                                }
+                        },
+                        {
+                            code: 
+                                {
+                                    in: code,
+                                }
+                        }
+                    ]
             },
         });
 
-        if (existingProduct) {
+        if (existingProduct.length > 0) {
             responseAPI(res, {
                 status: 400,
-                message: "Product with this code already exists",
+                message: "Product already exists",
             });
             return;
         }
 
-        await prismaClient.product.create({
-            data: {
-                name: name,
-                code: code,
-                description: description || null,
-                category: {
-                    connect: {
-                        id: categoryId,
-                    }
+        await Promise.all(
+            body.map(item =>
+            prismaClient.product.create({
+                data: {
+                    name: item.name.trim(),
+                    code: item.code.trim(),
+                    description: item.description || null,
+                    category: {
+                        connect: {
+                            id: item.categoryId,
+                        }
+                    },
+                    unit: {
+                        connect: {
+                            id: item.unitId,
+                        }
+                    },
+                    brand: {
+                        connect: {
+                            id: item.brandId,
+                        }
+                    },
+                    createdBy: { connect: { id: user.id } },
+                    updatedBy: { connect: { id: user.id } },
                 },
-                unit: {
-                    connect: {
-                        id: unitId,
-                    }
-                },
-                brand: {
-                    connect: {
-                        id: brandId,
-                    }
-                },
-                createdBy: {
-                    connect: {
-                        id: userId,
-                    }
-                },
-                updatedBy: {
-                    connect: {
-                        id: userId,
-                    }
-                },
-            },
-        });
+            })
+            )
+        );
+
+
+        // await prismaClient.product.create({
+        //     data: {
+        //         name: name,
+        //         code: code,
+        //         description: description || null,
+        //         category: {
+        //             connect: {
+        //                 id: categoryId,
+        //             }
+        //         },
+        //         unit: {
+        //             connect: {
+        //                 id: unitId,
+        //             }
+        //         },
+        //         brand: {
+        //             connect: {
+        //                 id: brandId,
+        //             }
+        //         },
+        //         createdBy: {
+        //             connect: {
+        //                 id: userId,
+        //             }
+        //         },
+        //         updatedBy: {
+        //             connect: {
+        //                 id: userId,
+        //             }
+        //         },
+        //     },
+        // });
 
         responseAPI(res, {
             status: 201,
