@@ -1,9 +1,8 @@
 export interface BodyCreateProduct {
     name: string;
-    productCode: string;
+    code: string;
     description: string;
-    userId: string;
-    unitId: string;
-    categoryId: string;
-    brandId: string;
+    unitId: number;
+    categoryId: number;
+    brandId: number;
 }
