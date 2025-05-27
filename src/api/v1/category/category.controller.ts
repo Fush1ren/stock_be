@@ -74,7 +74,6 @@ export const getAllCategory = async (req: Request, res: Response) => {
             select: {
                 id: true,
                 name: true,
-                code: true,
                 createdAt: true,
                 updatedAt: true,
                 createdBy: {
