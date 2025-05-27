@@ -5,9 +5,19 @@ import { prismaClient } from "../../config";
 import { QueryParams } from "../../dto";
 import { IQuery } from "../../types/data.type";
 import bcrypt from 'bcryptjs'
+import { validateToken } from "../auth/auth.controller";
 
 export const createUser = async (req: Request, res: Response) => {
     try {
+        const tokenHead = req.headers['authorization']?.split(' ')[1] as string;
+        const user = await validateToken(tokenHead);
+        if (!user) {
+            responseAPI(res, {
+                status: 401,
+                message: 'Unauthorized',
+            });
+            return;
+        }
         const body = req.body as BodyCreateUser;
         if (!body) {
             responseAPI(res, {status: 400, message: "No data provided"});
@@ -87,12 +97,12 @@ export const createUser = async (req: Request, res: Response) => {
                 refreshToken: null,
                 createdBy: {
                     connect: {
-                        id: body.createdBy,
+                        id: user.id,
                     }
                 },
                 updatedBy: {
                     connect: {
-                        id: body.updatedBy,
+                        id: user.id,
                     }
                 },
                 roles: {

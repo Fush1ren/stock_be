@@ -137,5 +137,7 @@ dist
 
 test.js.txt
 test2.js.txt
+test3.js.txt
+test4.js.txt
 
 schema.prisma.txt

@@ -5,7 +5,6 @@ export interface BodyCreateStoreStock {
     status: StatusProduct;
     storeId: number;
     productId: number;
-    userId: number;
 }
 
 export type BodyCreateWareHouseStock = Omit<BodyCreateStoreStock, 'storeId'>;
@@ -21,7 +20,6 @@ export interface BodyCreateStockIn {
     date: Date | string;
     toWarehouse: boolean;
     storeId: number;
-    userId: number;
     products: ProductStockIn[];
 }
 
@@ -29,7 +27,6 @@ export interface BodyCreateStockOut {
     stockOutCode: string;
     date: Date | string;
     storeId: number;
-    userId: number;
     products: ProductStockOut[];
 }
 
@@ -39,6 +36,5 @@ export interface BodyCreateStockMutation {
     fromWarehouse: boolean;
     fromStoreId: number | null;
     toStoreId: number;
-    userId: number;
     products: ProductStockMutation[];
 }
