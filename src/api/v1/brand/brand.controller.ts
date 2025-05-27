@@ -138,3 +138,82 @@ export const getBrandDropdown = async (_req: Request, res: Response) => {
         });
     }
 }
+
+export const deleteBrand = async (req: Request, res: Response) => {
+    try {
+        const body = req.body as { id: number[] };
+        if (!body.id || body.id.length === 0) {
+            return responseAPI(res, {
+                status: 400,
+                message: 'Brand ID is required',
+            });
+        }
+
+        await prismaClient.brand.deleteMany({
+            where: {
+                id: {
+                    in: body.id
+                }
+            }
+        })
+    } catch (error) {
+        responseAPI(res, {
+            status: 500,
+            message: 'Internal server error',
+        });
+    }
+}
+
+export const updateBrand = async (req: Request, res: Response) => {
+    try {
+        const tokenHead = req.headers['authorization']?.split(' ')[1] as string;
+        const user = await validateToken(tokenHead);
+        if (!user) {
+            return responseAPI(res, {
+                status: 401,
+                message: 'Unauthorized',
+            });
+        }
+
+        const body = req.body as { id: number; name: string };
+        if (!body || !body.id || !body.name) {
+            return responseAPI(res, {
+                status: 400,
+                message: 'Invalid request body',
+            });
+        }
+
+        const existingBrands = await prismaClient.brand.findFirst({
+            where: {
+                id: body.id,
+            },
+        });
+
+        if (!existingBrands) {
+            return responseAPI(res, {
+                status: 404,
+                message: 'Brand not found',
+            });
+        }
+
+        await prismaClient.brand.update({
+            where: { id: body.id },
+            data: {
+                name: body.name.trim(),
+                updatedBy: {
+                    connect: { id: user.id },
+                },
+            },
+        });
+        
+        responseAPI(res, {
+            status: 200,
+            message: 'Brand updated successfully',
+        });
+    } catch (error) {
+        responseAPI(res, {
+            status: 500,
+            message: 'Internal server error',
+        });
+    }
+}

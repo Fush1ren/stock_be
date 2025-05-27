@@ -4,6 +4,7 @@ import { prismaClient } from "../../config";
 import { QueryParams } from "../../dto";
 import { IQuery } from "../../types/data.type";
 import { validateToken } from "../auth/auth.controller";
+import { BodyDeleteProductData, BodyUpdateProductUnit } from "../../../dto/product.dto";
 
 export const createUnit = async (req: Request, res: Response) => {
     try {
@@ -41,6 +42,139 @@ export const createUnit = async (req: Request, res: Response) => {
         responseAPI(res, {
             status: 200,
             message: 'Unit created successfully',
+        });
+    } catch (error) {
+        responseAPI(res, {
+            status: 500,
+            message: 'Internal server error',
+        });
+    }
+}
+
+export const updateUnit = async (req: Request, res: Response) => {
+    try {
+        const tokenHead = req.headers['authorization']?.split(' ')[1] as string;
+        const user = await validateToken(tokenHead);
+        if (!user) {
+            responseAPI(res, {
+                status: 401,
+                message: 'Unauthorized',
+            });
+            return;
+        }
+        const body = req.body as BodyUpdateProductUnit;
+        
+        if (!body) {
+            responseAPI(res, {
+                status: 400,
+                message: 'No data provided',
+            });
+            return;
+        }
+        
+        if (!body.id) {
+            responseAPI(res, {
+                status: 400,
+                message: 'ID is required for update!',
+            });
+            return;
+        }
+
+        if (!body.name) {
+            responseAPI(res, {
+                status: 400,
+                message: 'Name is required for update!',
+            });
+            return;
+        }
+
+        const existingUnit = await prismaClient.unit.findFirst({
+            where: {
+                id: body.id,
+            },
+            select: {
+                id: true,
+            }
+        });
+        if (!existingUnit) {
+            responseAPI(res, {
+                status: 404,
+                message: 'Unit not found!',
+            });
+            return;
+        }
+
+        await prismaClient.unit.update({
+            where: {
+                id: body.id,
+            },
+            data: {
+                name: body.name.trim(),
+                updatedBy: {
+                    connect: {
+                        id: user.id,
+                    }
+                },
+            }
+        });
+        
+        responseAPI(res, {
+            status: 200,
+            message: 'Unit updated successfully',
+        });
+    } catch (error) {
+        responseAPI(res, {
+            status: 500,
+            message: 'Internal server error',
+        });
+    }
+}
+
+export const deleteUnit = async (req: Request, res: Response) => {
+    try {
+        const body = req.body as BodyDeleteProductData;
+        if (!body) {
+            responseAPI(res, {
+                status: 400,
+                message: 'No data provided',
+            });
+            return;
+        }
+
+        const unitIds = [...new Set(body.id.map((id) => id))];
+
+        const [ existingUnitId ] = await Promise.all([
+            prismaClient.unit.findMany({
+                where: {
+                    id: {
+                        in: unitIds,
+                    },
+                },
+                select: {
+                    id: true,
+                },
+            })
+        ]);
+
+        if (existingUnitId.length > 0) {
+            responseAPI(res, {
+                status: 400,
+                message: 'Unit ID is required for all units!',
+            });
+            return;
+        }
+
+        await Promise.all(
+            body.id.map(unit => prismaClient.unit.delete({
+                where: {
+                    id: unit,
+                }
+            }))
+        )
+
+        responseAPI(res, {
+            status: 200,
+            message: 'Unit deleted successfully',
         });
     } catch (error) {
         responseAPI(res, {

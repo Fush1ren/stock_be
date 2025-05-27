@@ -4,7 +4,7 @@ import { getPage, responseAPI, responseAPITable } from "../../utils";
 import { QueryParams } from "../../dto";
 import { IQuery } from "../../types/data.type";
 import { validateToken } from "../auth/auth.controller";
-import { BodyCreateProduct } from "../../../dto/product.dto";
+import { BodyCreateProduct, BodyDeleteProductData, BodyUpdateProduct } from "../../../dto/product.dto";
 
 export const createProduct = async (req: Request, res: Response) => {
     try {
@@ -82,6 +82,61 @@ export const createProduct = async (req: Request, res: Response) => {
             });
         }
 
+        // Ambil ID unik
+        const categoryIds = [...new Set(body.map(item => item.categoryId))];
+        const unitIds = [...new Set(body.map(item => item.unitId))];
+        const brandIds = [...new Set(body.map(item => item.brandId))];
+
+        // Query database
+        const [existingCategories, existingUnits, existingBrands] = await Promise.all([
+            prismaClient.category.findMany({
+                where: { id: { in: categoryIds } },
+                select: { id: true }
+            }),
+            prismaClient.unit.findMany({
+                where: { id: { in: unitIds } },
+                select: { id: true }
+            }),
+            prismaClient.brand.findMany({
+                where: { id: { in: brandIds } },
+                select: { id: true }
+            })
+        ]);
+
+        // Ambil ID yang ditemukan
+        const existingCategoryIds = new Set(existingCategories.map(c => c.id));
+        const existingUnitIds = new Set(existingUnits.map(u => u.id));
+        const existingBrandIds = new Set(existingBrands.map(b => b.id));
+
+        // Cek apakah ada ID yang tidak ditemukan
+        const missingCategory = categoryIds.find(id => !existingCategoryIds.has(id));
+        const missingUnit = unitIds.find(id => !existingUnitIds.has(id));
+        const missingBrand = brandIds.find(id => !existingBrandIds.has(id));
+
+        if (missingCategory) {
+            responseAPI(res, {
+                status: 400,
+                message: `Category ID ${missingCategory} does not exist`,
+            });
+            return;
+        }
+
+        if (missingUnit) {
+            responseAPI(res, {
+                status: 400,
+                message: `Unit ID ${missingUnit} does not exist`,
+            });
+            return;
+        }
+
+        if (missingBrand) {
+            responseAPI(res, {
+                status: 400,
+                message: `Brand ID ${missingBrand} does not exist`,
+            });
+            return;
+        }
+
         const name = body.map(item => item.name.trim());
         const code = body.map(item => item.code.trim());
 
@@ -141,40 +196,6 @@ export const createProduct = async (req: Request, res: Response) => {
             )
         );
 
-
-        // await prismaClient.product.create({
-        //     data: {
-        //         name: name,
-        //         code: code,
-        //         description: description || null,
-        //         category: {
-        //             connect: {
-        //                 id: categoryId,
-        //             }
-        //         },
-        //         unit: {
-        //             connect: {
-        //                 id: unitId,
-        //             }
-        //         },
-        //         brand: {
-        //             connect: {
-        //                 id: brandId,
-        //             }
-        //         },
-        //         createdBy: {
-        //             connect: {
-        //                 id: userId,
-        //             }
-        //         },
-        //         updatedBy: {
-        //             connect: {
-        //                 id: userId,
-        //             }
-        //         },
-        //     },
-        // });
-
         responseAPI(res, {
             status: 201,
             message: "Product created successfully",
@@ -183,6 +204,143 @@ export const createProduct = async (req: Request, res: Response) => {
         responseAPI(res, {
             status: 500,
             message: "Internal server error",
+        });
+    }
+}
+
+export const updateProduct = async (req: Request, res: Response) => {
+    try {
+        const tokenHead = req.headers['authorization']?.split(' ')[1] as string;
+        const user = await validateToken(tokenHead);
+        if (!user) {
+            responseAPI(res, {
+                status: 401,
+                message: 'Unauthorized',
+            });
+            return;
+        }
+
+        const body = req.body as BodyUpdateProduct;
+
+        if (!body || !body.id) {
+            responseAPI(res, {
+                status: 400,
+                message: 'No data provided',
+            });
+            return;
+        }
+
+        if (!body.name || typeof body.name !== 'string' || body.name.trim() === '') {
+            responseAPI(res, {
+                status: 400,
+                message: 'Name is required',
+            });
+            return;
+        }
+        
+        const existingProduct = await prismaClient.product.findUnique({
+            where: {
+                id: body.id,
+            },
+        });
+
+        if (!existingProduct) {
+            responseAPI(res, {
+                status: 404,
+                message: 'Product not found',
+            });
+            return;
+        }
+        
+        await prismaClient.product.update({
+            where: {
+                id: body.id,
+            },
+            data: {
+                name: body.name.trim(),
+                description: body.description,
+                category: body.categoryId ? {
+                    connect: {
+                        id: body.categoryId,
+                    }
+                } : undefined,
+                unit: body.unitId ? {
+                    connect: {
+                        id: body.unitId,
+                    }
+                } : undefined,
+                brand: body.brandId ? {
+                    connect: {
+                        id: body.brandId,
+                    }
+                } : undefined,
+                updatedBy: { connect: { id: user.id } },
+            }
+        });
+
+        responseAPI(res, {
+            status: 200,
+            message: 'Product updated successfully',
+        });
+    } catch (error) {
+        responseAPI(res, {
+            status: 500,
+            message: 'Internal server error',
+        });
+    }
+}
+
+export const deleteProduct = async (req: Request, res: Response) => {
+    try {
+        const body = req.body as BodyDeleteProductData;
+
+        if (!body) {
+            responseAPI(res, {
+                status: 400,
+                message: 'No data provided',
+            });
+            return;
+        }
+
+        const productIds = [...new Set(body.id.map((id) => id))];
+
+        const [ existingProductId ] = await Promise.all([
+            prismaClient.product.findMany({
+                where: {
+                    id: {
+                        in: productIds,
+                    },
+                },
+                select: {
+                    id: true,
+                },
+            })
+        ]);
+
+        if (existingProductId.length > 0) {
+            responseAPI(res, {
+                status: 400,
+                message: 'Unit ID is required for all units!',
+            });
+            return;
+        }
+
+        await Promise.all(
+            body.id.map(unit => prismaClient.product.delete({
+                where: {
+                    id: unit,
+                }
+            }))
+        )
+
+        responseAPI(res, {
+            status: 200,
+            message: 'Product deleted successfully',
+        });
+    } catch (error) {
+        responseAPI(res, {
+            status: 500,
+            message: 'Internal server error',
         });
     }
 }

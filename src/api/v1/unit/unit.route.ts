@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { createUnit, getAllUnit, getUnitDropdown } from './unit.controller';
+import { createUnit, deleteUnit, getAllUnit, getUnitDropdown, updateUnit } from './unit.controller';
 import { verifyToken } from '../../../middleware';
 
 const unitRoute = Router();
@@ -7,5 +7,7 @@ const unitRoute = Router();
 unitRoute.get('/', verifyToken, getAllUnit);
 unitRoute.get('/dropdown', verifyToken, getUnitDropdown);
 unitRoute.post('/', verifyToken, createUnit);
+unitRoute.put('/', verifyToken, updateUnit);
+unitRoute.delete('/', verifyToken, deleteUnit);
 
 export default unitRoute;

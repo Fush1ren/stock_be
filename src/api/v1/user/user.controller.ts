@@ -192,3 +192,50 @@ export const updateUser = async (req: Request, res: Response) => {
         res.status(403);
     }
 }
+
+export const deleteUser = async (req: Request, res: Response) => {
+    try {
+        const body = req.body as { id: string[] };
+
+        if (!body || !body.id || body.id.length === 0) {
+            return responseAPI(res, {
+                status: 400,
+                message: 'No user ID provided',
+            });
+        }
+
+        const userIds = body.id.map(id => Number(id));
+        const users = await prismaClient.user.findMany({
+            where: {
+                id: {
+                    in: userIds,
+                },
+            },
+            select: {
+                id: true,
+            },
+        });
+
+        if (users.length === 0) {
+            return responseAPI(res, {
+                status: 404,
+                message: 'No users found with the provided IDs',
+            });
+        }
+
+        await Promise.all(
+            users.map(user => 
+                prismaClient.user.delete({
+                    where: { id: user.id },
+                })
+            )
+        )
+        
+        responseAPI(res, {
+            status: 200,
+            message: 'User deleted successfully',
+        });
+    } catch (error) {
+        res.status(403);
+    }
+}
