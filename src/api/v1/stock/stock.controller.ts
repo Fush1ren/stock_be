@@ -378,7 +378,16 @@ export const createStockOut = async (req: Request, res: Response) => {
 
 export const createStockMutation = async (req: Request, res: Response) => {
     try {
-        const { stockMutationCode, date, fromWarehouse, toStoreId, fromStoreId, userId, products } = req.body as BodyCreateStockMutation;
+        const tokenHead = req.headers['authorization']?.split(' ')[1] as string;
+        const user = await validateToken(tokenHead);
+        if (!user) {
+            responseAPI(res, {
+                status: 401,
+                message: 'Unauthorized',
+            });
+            return;
+        }
+        const { stockMutationCode, date, fromWarehouse, toStoreId, fromStoreId, products } = req.body as BodyCreateStockMutation;
 
         const queryTable = {
             data: {
@@ -396,12 +405,12 @@ export const createStockMutation = async (req: Request, res: Response) => {
                 },
                 createdBy: {
                     connect: {
-                        id: userId,
+                        id: user.id,
                     }
                 },
                 updatedBy: {
                     connect: {
-                        id: userId,
+                        id: user.id,
                     }
                 },
                 StockMutationDetail: {
@@ -448,13 +457,6 @@ export const createStockMutation = async (req: Request, res: Response) => {
             responseAPI(res, {
                 status: 400,
                 message: "To store ID is required",
-            });
-        }
-
-        if (!userId) {
-            responseAPI(res, {
-                status: 400,
-                message: "User ID is required",
             });
         }
 

@@ -70,7 +70,6 @@ export const getAllBrand = async (req: Request, res: Response) => {
             select: {
                 id: true,
                 name: true,
-                code: true,
                 createdAt: true,
                 updatedAt: true,
                 createdBy: {
