@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { prismaClient } from "../../config";
 import { QueryParams } from "../../dto";
-import { getPage, responseAPI, responseAPITable } from "../../utils";
+import { getPage, responseAPI, responseAPIData, responseAPITable } from "../../utils";
 import { IQuery } from "../../types/data.type";
 import { validateToken } from "../auth/auth.controller";
 
@@ -134,10 +134,10 @@ export const updateStore = async (req: Request, res: Response) => {
             });
             return;
         }
+        const id = Number(req.params.id);
+        const body = req.body as { name: string; };
 
-        const body = req.body as { id: number; name: string; };
-
-        if (!body || !body.id || !body.name) {
+        if (!body || !body.name) {
             responseAPI(res, {
                 status: 400,
                 message: "ID and Name are required",
@@ -145,13 +145,10 @@ export const updateStore = async (req: Request, res: Response) => {
             return;
         }
         
-        const existingStore = await prismaClient.store.findFirst({
+        const existingStore = await prismaClient.store.findUnique({
             where: {
-                id: body.id,
+                id: id,
             },
-            select: {
-                id: true,
-            }
         });
 
          // Check if the store exists
@@ -164,7 +161,7 @@ export const updateStore = async (req: Request, res: Response) => {
         }
         
         await prismaClient.store.update({
-            where: { id: body.id },
+            where: { id: id },
             data: {
                 name: body.name.trim(),
                 updatedBy: {
@@ -214,6 +211,28 @@ export const deleteStore = async (req: Request, res: Response) => {
         responseAPI(res, {
             status: 500,
             message: 'Internal server error',
+        });
+    }
+}
+
+export const getStoreDropdown = async (_req: Request, res: Response) => {
+    try {
+        const stores = await prismaClient.store.findMany({
+            select: {
+                id: true,
+                name: true,
+            },
+        });
+
+        responseAPIData(res, {
+            status: 200,
+            message: "Stores retrieved successfully",
+            data: stores,
+        });
+    } catch (error) {
+        responseAPI(res, {
+            status: 500,
+            message: "Internal server error",
         });
     }
 }

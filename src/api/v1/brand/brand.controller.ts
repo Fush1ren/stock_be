@@ -174,9 +174,9 @@ export const updateBrand = async (req: Request, res: Response) => {
                 message: 'Unauthorized',
             });
         }
-
-        const body = req.body as { id: number; name: string };
-        if (!body || !body.id || !body.name) {
+        const id = Number(req.params.id);
+        const body = req.body as { name: string };
+        if (!body || !id || !body.name) {
             return responseAPI(res, {
                 status: 400,
                 message: 'Invalid request body',
@@ -185,7 +185,7 @@ export const updateBrand = async (req: Request, res: Response) => {
 
         const existingBrands = await prismaClient.brand.findFirst({
             where: {
-                id: body.id,
+                id: id,
             },
         });
 
@@ -197,7 +197,7 @@ export const updateBrand = async (req: Request, res: Response) => {
         }
 
         await prismaClient.brand.update({
-            where: { id: body.id },
+            where: { id: id },
             data: {
                 name: body.name.trim(),
                 updatedBy: {

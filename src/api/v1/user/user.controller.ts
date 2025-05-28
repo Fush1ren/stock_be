@@ -170,7 +170,8 @@ export const getAllUser = async (req: Request, res: Response) => {
 
 export const updateUser = async (req: Request, res: Response) => {
     try {
-       const { id, password } = req.body;
+        const id = Number(req.params.id);
+        const { password } = req.body;
         if (!req.body) {
             responseAPI(res, {status: 400, message: "No data provided"});
         };

@@ -62,20 +62,14 @@ export const updateUnit = async (req: Request, res: Response) => {
             });
             return;
         }
+
+        const id = Number(req.params.id);
         const body = req.body as BodyUpdateProductUnit;
         
         if (!body) {
             responseAPI(res, {
                 status: 400,
                 message: 'No data provided',
-            });
-            return;
-        }
-        
-        if (!body.id) {
-            responseAPI(res, {
-                status: 400,
-                message: 'ID is required for update!',
             });
             return;
         }
@@ -88,13 +82,10 @@ export const updateUnit = async (req: Request, res: Response) => {
             return;
         }
 
-        const existingUnit = await prismaClient.unit.findFirst({
+        const existingUnit = await prismaClient.unit.findUnique({
             where: {
-                id: body.id,
+                id: id,
             },
-            select: {
-                id: true,
-            }
         });
         if (!existingUnit) {
             responseAPI(res, {
@@ -106,7 +97,7 @@ export const updateUnit = async (req: Request, res: Response) => {
 
         await prismaClient.unit.update({
             where: {
-                id: body.id,
+                id: id,
             },
             data: {
                 name: body.name.trim(),
