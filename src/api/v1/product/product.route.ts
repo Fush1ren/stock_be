@@ -7,7 +7,7 @@ const productRoute = Router();
 
 productRoute.get('/', verifyToken, getAllProducts);
 productRoute.post('/', verifyToken, createProduct);
-productRoute.put('/', verifyToken, updateProduct); // Assuming updateProduct is similar to createProduct
+productRoute.put('/:id', verifyToken, updateProduct); // Assuming updateProduct is similar to createProduct
 productRoute.delete('/', verifyToken, deleteBrand);
 
 export default productRoute;

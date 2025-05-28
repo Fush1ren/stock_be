@@ -136,9 +136,11 @@ export const updateCategory = async (req: Request, res: Response) => {
             return;
         }
 
-        const body = req.body as { id: number, name: string };
+        const id = Number(req.params.id);
 
-        if (!body || !body.id || !body.name) {
+        const body = req.body as { name: string };
+
+        if (!body || !id || !body.name) {
             return responseAPI(res, {
                 status: 400,
                 message: "Invalid request body",
@@ -147,7 +149,7 @@ export const updateCategory = async (req: Request, res: Response) => {
 
         const existingCategory = await prismaClient.category.findFirst({
             where: { 
-                id: body.id
+                id: Number(id)
             },
         });
 
@@ -159,7 +161,7 @@ export const updateCategory = async (req: Request, res: Response) => {
         }
 
         await prismaClient.category.update({
-            where: { id: body.id },
+            where: { id: id },
             data: {
                 name: body.name.trim(),
                 updatedBy: {

@@ -10,7 +10,7 @@ const userRouter = Router();
 
 userRouter.get('/', verifyToken, getAllUser);
 userRouter.post('/', verifyToken, upload.single('photo'), createUser);
-userRouter.put('/', verifyToken, updateUser)
+userRouter.put('/:id', verifyToken, updateUser)
 userRouter.delete('/', verifyToken, updateUser); 
 
 export default userRouter;

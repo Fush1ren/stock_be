@@ -7,7 +7,7 @@ const unitRoute = Router();
 unitRoute.get('/', verifyToken, getAllUnit);
 unitRoute.get('/dropdown', verifyToken, getUnitDropdown);
 unitRoute.post('/', verifyToken, createUnit);
-unitRoute.put('/', verifyToken, updateUnit);
+unitRoute.put('/:id', verifyToken, updateUnit);
 unitRoute.delete('/', verifyToken, deleteUnit);
 
 export default unitRoute;

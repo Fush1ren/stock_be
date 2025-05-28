@@ -220,9 +220,10 @@ export const updateProduct = async (req: Request, res: Response) => {
             return;
         }
 
+        const id = Number(req.params.id);
         const body = req.body as BodyUpdateProduct;
 
-        if (!body || !body.id) {
+        if (!body || !id) {
             responseAPI(res, {
                 status: 400,
                 message: 'No data provided',
@@ -240,7 +241,7 @@ export const updateProduct = async (req: Request, res: Response) => {
         
         const existingProduct = await prismaClient.product.findUnique({
             where: {
-                id: body.id,
+                id: id,
             },
         });
 
@@ -254,7 +255,7 @@ export const updateProduct = async (req: Request, res: Response) => {
         
         await prismaClient.product.update({
             where: {
-                id: body.id,
+                id: id,
             },
             data: {
                 name: body.name.trim(),

@@ -8,7 +8,6 @@ export interface BodyCreateProduct {
 }
 
 export interface BodyUpdateProduct {
-    id: number;
     name: string;
     description: string;
     categoryId: number;
@@ -17,7 +16,6 @@ export interface BodyUpdateProduct {
 }
 
 export interface BodyUpdateProductUnit {
-    id: number;
     name: string;
 }
 

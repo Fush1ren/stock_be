@@ -122,31 +122,39 @@ export const updateRole = async (req: Request, res: Response) => {
             });
             return;
         }
-        const body = req.body as { id: number; name: string; }[];
 
-        if (!body || body.length === 0) {
+        const id = Number(req.params.id);
+        const body = req.body as { name: string; };
+
+        if (!body || !body.name) {
             responseAPI(res, {
                 status: 400,
-                message: 'No data provided',
+                message: 'Name is required',
             });
             return;
         }
 
-        await Promise.all(
-            body.map(role => 
-                prismaClient.role.update({
-                    where: { id: role.id },
-                    data: {
-                        name: role.name,
-                        updatedBy: {
-                            connect: {
-                                id: user.id,
-                            }
-                        },
-                    },
-                })
-            )
-        ); // Update multiple roles
+        const existingRole = await prismaClient.role.findUnique({
+            where: { id: id },
+        });
+
+        if (!existingRole) {
+            responseAPI(res, {
+                status: 404,
+                message: "Role not found",
+            });
+            return;
+        }
+
+        await prismaClient.role.update({
+            where: { id: id },
+            data: {
+                name: body.name.trim(),
+                updatedBy: {
+                    connect: { id: user.id },
+                },
+            },
+        });
 
         responseAPI(res, {
             status: 200,
