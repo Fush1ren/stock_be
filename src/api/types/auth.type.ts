@@ -9,7 +9,10 @@ export interface UserLoginResponse {
     username: string;
     email: string;
     photo: string | null;
-    role: number;
+    role: {
+        id: number;
+        name: string;
+    };
     accessToken: string;
     refreshToken?: string;
 }

@@ -149,7 +149,10 @@ export const login = async (req: Request, res: Response) => {
             username: user?.username as string,
             email: user?.email as string,
             photo: user?.photo as string | null,
-            role: user?.roles.id as number,
+            role: {
+                id: user?.roles.id as number,
+                name: user?.roles.name as string,
+            },
             accessToken: token,
         }
         if (body.stayLoggedIn) {
