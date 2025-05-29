@@ -1,11 +1,47 @@
 import { Request, Response } from "express";
+import { createClient } from '@supabase/supabase-js';
 import { BodyCreateUser } from "../../../dto";
-import { getPage, responseAPI, responseAPITable } from "../../utils";
+import { getPage, responseAPI, responseAPIData, responseAPITable } from "../../utils";
 import { prismaClient } from "../../config";
 import { QueryParams } from "../../dto";
 import { IQuery } from "../../types/data.type";
-import bcrypt from 'bcryptjs'
 import { validateToken } from "../auth/auth.controller";
+import bcrypt from 'bcryptjs'
+import config from "../../../config";
+
+const supabaseStorage = createClient(config.bucketUrl, config.bucketKey);
+const bucketName = config.bucketName;
+
+const uploadToSupabaseStorage = async (file: Express.Multer.File, username: string): Promise<string | undefined> => {
+    try {
+        const fileExt = file.originalname.split('.').pop();
+        const fileName = `${username}-${Date.now()}.${fileExt}`;
+
+        const { error } = await supabaseStorage.storage.from(bucketName).upload(fileName, file.buffer, {
+            contentType: file.mimetype,
+            upsert: true,
+        });
+
+        if (error) {
+            console.error('Error uploading file:', error);
+        }
+
+        return supabaseStorage.storage.from(bucketName).getPublicUrl(fileName).data.publicUrl;
+    } catch (error) {
+        console.error('Error uploading file to Supabase Storage:', error);
+    }
+}
+
+const deleteFromSupabaseStorage = async (avatarUrl: string): Promise<void> => {
+    try {
+        const filePath = avatarUrl.split('/storage/v1/object/public/')[1];
+
+        if (!filePath) return;
+        await supabaseStorage.storage.from(bucketName).remove([filePath]);
+    } catch (error) {
+        console.error('Error deleting file from Supabase Storage:', error);
+    }
+}
 
 export const createUser = async (req: Request, res: Response) => {
     try {
@@ -63,6 +99,7 @@ export const createUser = async (req: Request, res: Response) => {
                 username: body.username,
             },
         });
+
         if (existingUser) {
             return responseAPI(res, {
                 status: 400,
@@ -83,7 +120,12 @@ export const createUser = async (req: Request, res: Response) => {
             });
         }
 
-        const imageBuffer = req.file ? req.file.buffer : null;
+        let avatarUrl: string | undefined = undefined;
+        if (req.file) {
+            avatarUrl = await uploadToSupabaseStorage(req.file, body.username);
+        }
+
+        // const imageBuffer = req.file ? req.file.buffer : null;
 
         const hashed = await bcrypt.hash(body.password, 10)
 
@@ -93,7 +135,7 @@ export const createUser = async (req: Request, res: Response) => {
                 username: body.username,
                 email: body.email,
                 password: hashed,
-                photo: imageBuffer,
+                photo: avatarUrl || null,
                 refreshToken: null,
                 createdBy: {
                     connect: {
@@ -214,6 +256,7 @@ export const deleteUser = async (req: Request, res: Response) => {
             },
             select: {
                 id: true,
+                photo: true, // Include photo field to handle deletion if needed
             },
         });
 
@@ -223,6 +266,14 @@ export const deleteUser = async (req: Request, res: Response) => {
                 message: 'No users found with the provided IDs',
             });
         }
+
+        await Promise.all(
+            users.map(async user => {
+                if (user.photo) {
+                    await deleteFromSupabaseStorage(user.photo);
+                }
+            })
+        )
 
         await Promise.all(
             users.map(user => 
@@ -238,5 +289,124 @@ export const deleteUser = async (req: Request, res: Response) => {
         });
     } catch (error) {
         res.status(403);
+    }
+}
+
+export const getUserProfile = async (req: Request, res: Response) => {
+    try {
+        const userId = req.params.id ? Number(req.params.id) : null;
+
+        if (!userId) {
+            return responseAPI(res, {
+                status: 400,
+                message: 'User ID is required',
+            });
+        }
+
+        const userProfile = await prismaClient.user.findUnique({
+            where: { id: userId },
+            select: {
+                id: true,
+                name: true,
+                username: true,
+                email: true,
+                photo: true,
+                createdAt: true,
+                updatedAt: true,
+                roles: {
+                    select: {
+                        id: true,
+                        name: true,
+                    }
+                }
+            }
+        });
+
+        if (!userProfile) {
+            return responseAPI(res, {
+                status: 404,
+                message: 'User not found',
+            });
+        }
+
+        responseAPIData(res, {
+            status: 200,
+            message: 'User profile retrieved successfully',
+            data: userProfile,
+        });
+    } catch (error) {
+        responseAPI(res, {
+            status: 500,
+            message: 'Internal server error',
+        });
+    }
+}
+
+export const updateUserProfile = async (req: Request, res: Response) => {
+    try {
+        const userId = req.params.id ? Number(req.params.id) : null;
+
+        if (!userId) {
+            return responseAPI(res, {
+                status: 400,
+                message: 'User ID is required',
+            });
+        }
+
+        const body = req.body as BodyCreateUser;
+        if (!body) {
+            return responseAPI(res, {status: 400, message: "No data provided"});
+        };
+
+        const existingUser = await prismaClient.user.findUnique({
+            where: {
+                id: userId,
+            },
+        });
+
+        if (!existingUser) {
+            return responseAPI(res, {
+                status: 404,
+                message: 'User not found',
+            });
+        }
+        
+        let avatarUrl: string | undefined = undefined;
+        if (req.file) {
+            if (existingUser.photo) {
+                await deleteFromSupabaseStorage(existingUser.photo);
+            }
+            avatarUrl = await uploadToSupabaseStorage(req.file, existingUser.username);
+        }
+
+        await prismaClient.user.update({
+            where: { id: userId },
+            data: {
+                name: body.name || existingUser.name,
+                username: body.username || existingUser.username,
+                email: body.email || existingUser.email,
+                photo: avatarUrl || existingUser.photo,
+                updatedBy: {
+                    connect: {
+                        id: userId,
+                    }
+                },
+                roles: {
+                    connect: {
+                        id: Number(body.role),
+                    },
+                }
+            }
+        });
+
+        responseAPI(res, {
+            status: 200,
+            message: 'User profile updated successfully',
+        });
+    } catch (error) {
+        responseAPI(res, {
+            status: 500,
+            message: 'Internal server error',
+        });
     }
 }

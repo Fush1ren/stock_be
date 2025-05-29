@@ -5,7 +5,8 @@ import { Request, Response } from 'express'
 import { responseAPI, responseAPIData } from '../../utils'
 import { BodyUserLogin } from '../../dto'
 import { prismaClient } from '../../config'
-import { Payload, Token, User } from '../../types'
+import { Payload, User } from '../../types'
+import { UserLoginResponse } from '../../types/auth.type'
 
 const generateAccessToken = (userId: number) => {
     return jwt.sign({ userId }, config.jwtSecret, { expiresIn: '1h' }) // 1 hour
@@ -58,7 +59,7 @@ export const validateToken = async (token: string): Promise<User | null> => {
             name: user?.name as string,
             username: user?.username as string,
             email: user?.email as string,
-            photo: user?.photo as Uint8Array,
+            photo: user?.photo as string,
             refreshToken: user?.refreshToken as string,
             role: user?.roles.name as string,
         }
@@ -109,6 +110,20 @@ export const login = async (req: Request, res: Response) => {
                     { username: body.identifier },
                     { email: body.identifier },
                 ]
+            },
+            select: {
+                id: true,
+                username: true,
+                name: true,
+                email: true,
+                photo: true,
+                password: true,
+                roles: {
+                    select: {
+                        id: true,
+                        name: true,
+                    }
+                }
             }
         })
         if (!user) {
@@ -128,7 +143,13 @@ export const login = async (req: Request, res: Response) => {
         }
 
         const token = generateAccessToken(user?.id as number);
-        let data: Token = {
+        let data: UserLoginResponse = {
+            id: user?.id as number,
+            name: user?.name as string,
+            username: user?.username as string,
+            email: user?.email as string,
+            photo: user?.photo as string | null,
+            role: user?.roles.id as number,
             accessToken: token,
         }
         if (body.stayLoggedIn) {

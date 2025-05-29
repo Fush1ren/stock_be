@@ -34,7 +34,8 @@ model User {
     username  String @unique @db.VarChar(15)
     email     String @unique @db.VarChar(50)
     password  String @db.VarChar(100)
-    photo     Bytes? @db.ByteA
+    photo     String? @db.Text
+    // photo     Bytes? @db.ByteA
     refreshToken String? @db.VarChar(100)
     createdAt DateTime @default(now()) @db.Timestamptz()
     updatedAt DateTime @updatedAt @db.Timestamptz()

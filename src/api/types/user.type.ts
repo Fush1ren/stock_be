@@ -3,7 +3,7 @@ export interface User {
     name: string;
     username: string;
     email: string;
-    photo: Uint8Array | null;
+    photo: string | null;
     refreshToken: string | null;
     role: string;
 }
