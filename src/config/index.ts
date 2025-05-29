@@ -8,6 +8,9 @@ interface Config {
     jwtSecret: string;
     refreshTokenSecret: string;
     clientUrl: string;
+    bucketUrl: string;
+    bucketName: string;
+    bucketKey: string;
 }
 
 const config: Config = {
@@ -16,6 +19,9 @@ const config: Config = {
     jwtSecret: process.env.JWT_SECRET ?? '',
     refreshTokenSecret: process.env.REFRESH_TOKEN_SECRET ?? '',
     clientUrl: process.env.CLIENT_URL ?? '*',
+    bucketUrl: process.env.BUCKET_URL ?? '',
+    bucketName: process.env.BUCKET_NAME ?? '',
+    bucketKey: process.env.BUCKET_KEY ?? ''
 };
 
 export default config;
