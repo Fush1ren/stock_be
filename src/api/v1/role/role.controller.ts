@@ -7,7 +7,17 @@ import { validateToken } from "../auth/auth.controller";
 
 export const createRole = async (req: Request, response: Response) => {
     try {
-        const { name, userId } = req.body;
+        const tokenHead = req.headers['authorization']?.split(' ')[1] as string;
+        const user = await validateToken(tokenHead);
+        if (!user) {
+            responseAPI(response, {
+                status: 401,
+                message: 'Unauthorized',
+            });
+            return;
+        }
+
+        const { name } = req.body;
 
         if (!name) {
             return responseAPI(response, {
@@ -34,12 +44,12 @@ export const createRole = async (req: Request, response: Response) => {
                 name: name,
                 createdBy: {
                     connect: {
-                        id: userId,
+                        id: user.id,
                     }
                 },
                 updatedBy: {
                     connect: {
-                        id: userId,
+                        id: user.id,
                     }
                 },
             },
