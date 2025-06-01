@@ -236,6 +236,18 @@ export const getUserById = async (req: Request, res: Response) => {
                         id: true,
                         name: true,
                     }
+                },
+                createdBy: {
+                    select: {
+                        id: true,
+                        name: true,
+                    }
+                },
+                updatedBy: {
+                    select: {
+                        id: true,
+                        name: true,
+                    }
                 }
             }
         });
