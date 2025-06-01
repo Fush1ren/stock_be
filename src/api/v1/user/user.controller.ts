@@ -226,6 +226,7 @@ export const getUserById = async (req: Request, res: Response) => {
                 id: true,
                 name: true,
                 username: true,
+                password: true,
                 email: true,
                 photo: true,
                 createdAt: true,
