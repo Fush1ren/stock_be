@@ -4,6 +4,7 @@ import { prismaClient } from "../../config";
 import { QueryParams } from "../../dto";
 import { IQuery } from "../../types/data.type";
 import { validateToken } from "../auth/auth.controller";
+import { parseSort } from "../../utils/data.util";
 
 export const createCategory = async (req: Request, res: Response) => {
     try {
@@ -205,6 +206,18 @@ export const getAllCategory = async (req: Request, res: Response) => {
                 },
             },
         } as IQuery;
+
+        const orderBy = parseSort({
+            sortBy: queryParams.sortBy,
+            sortOrder: queryParams.sortOrder,
+        });
+
+        if (orderBy) {
+            queryTable = {
+                ...queryTable,
+                orderBy,
+            };
+        }
 
        if (queryParams.page || queryParams.limit) {
             const paramPage = queryParams.page ? Number(queryParams.page) : 1;

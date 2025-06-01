@@ -5,6 +5,7 @@ import { QueryParams } from "../../dto";
 import { IQuery } from "../../types/data.type";
 import { validateToken } from "../auth/auth.controller";
 import { BodyCreateProduct, BodyDeleteProductData, BodyUpdateProduct } from "../../../dto/product.dto";
+import { parseSort } from "../../utils/data.util";
 
 export const createProduct = async (req: Request, res: Response) => {
     try {
@@ -389,6 +390,18 @@ export const getAllProducts = async (req: Request, res: Response) => {
                 },
             },
         } as IQuery;
+
+        const orderBy = parseSort({
+            sortBy: queryParams.sortBy,
+            sortOrder: queryParams.sortOrder,
+        });
+        
+        if (orderBy) {
+            queryTable = {
+                ...queryTable,
+                orderBy,
+            };
+        }
 
         if (queryParams.page || queryParams.limit) {
             const paramPage = queryParams.page ? Number(queryParams.page) : 1;
