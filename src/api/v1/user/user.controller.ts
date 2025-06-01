@@ -8,6 +8,7 @@ import { IQuery } from "../../types/data.type";
 import { validateToken } from "../auth/auth.controller";
 import bcrypt from 'bcryptjs'
 import config from "../../../config";
+import { BodyUpdateUser } from "../../../dto/user.dto";
 
 const supabaseStorage = createClient(config.bucketUrl, config.bucketKey);
 const bucketName = config.bucketName;
@@ -226,7 +227,6 @@ export const getUserById = async (req: Request, res: Response) => {
                 id: true,
                 name: true,
                 username: true,
-                password: true,
                 email: true,
                 photo: true,
                 createdAt: true,
@@ -262,19 +262,108 @@ export const getUserById = async (req: Request, res: Response) => {
 
 export const updateUser = async (req: Request, res: Response) => {
     try {
+        const tokenHead = req.headers['authorization']?.split(' ')[1] as string;
+        const userUpdated = await validateToken(tokenHead);
+        if (!userUpdated) {
+            responseAPI(res, {
+                status: 401,
+                message: 'Unauthorized',
+            });
+            return;
+        }
         const id = Number(req.params.id);
-        const { password } = req.body;
-        if (!req.body) {
+        const body = req.body as BodyUpdateUser;
+        if (!body) {
             responseAPI(res, {status: 400, message: "No data provided"});
         };
 
-        const hashed = await bcrypt.hash(password, 10)
+        if (!id) {
+            return responseAPI(res, {
+                status: 400,
+                message: 'User ID is required',
+            });
+        }
+
+        if (!body.name) {
+            return responseAPI(res, {
+                status: 400,
+                message: 'Name is required',
+            });
+        }
+
+        if (!body.username) {
+            return responseAPI(res, {
+                status: 400,
+                message: 'Username is required',
+            });
+        }
+
+        if (!body.email) {
+            return responseAPI(res, {
+                status: 400,
+                message: 'Email is required',
+            });
+        }
+
+        if (!body.role) {
+            return responseAPI(res, {
+                status: 400,
+                message: 'Role is required',
+            });
+        }
+
+        const existingUser = await prismaClient.user.findUnique({
+            where: { id: id },
+        });
+
+        if (!existingUser) {
+            return responseAPI(res, {
+                status: 404,
+                message: 'User not found',
+            });
+        }
+
+        if (body.password) {
+            const hashed = await bcrypt.hash(body.password, 10)
+            body.password = hashed;
+        } else {
+            if (!existingUser) {
+                return responseAPI(res, {
+                    status: 404,
+                    message: 'User not found',
+                });
+            }
+            body.password = existingUser.password; // Keep the existing password if not provided
+        }
+
+        let avatarUrl: string | undefined = undefined;
+        if (req.file) {
+            if (existingUser.photo) {
+                await deleteFromSupabaseStorage(existingUser.photo);
+            }
+            avatarUrl = await uploadToSupabaseStorage(req.file, existingUser.username);
+        }
+
 
         await prismaClient.user.update({
             where: { id: Number(id) },
             data: {
-                password: hashed,
-            }
+                name: body.name,
+                username: body.username,
+                email: body.email,
+                password: body.password,
+                photo: avatarUrl || existingUser.photo, // Keep the existing photo if not updated
+                updatedBy: {
+                    connect: {
+                        id: userUpdated.id,
+                    }
+                },
+                roles: {
+                    connect: {
+                        id: Number(body.role),
+                    },
+                }
+            },
         })
         
         responseAPI(res, {
@@ -394,6 +483,15 @@ export const getUserProfile = async (req: Request, res: Response) => {
 
 export const updateUserProfile = async (req: Request, res: Response) => {
     try {
+        const tokenHead = req.headers['authorization']?.split(' ')[1] as string;
+        const userUpdated = await validateToken(tokenHead);
+        if (!userUpdated) {
+            responseAPI(res, {
+                status: 401,
+                message: 'Unauthorized',
+            });
+            return;
+        }
         const userId = req.params.id ? Number(req.params.id) : null;
 
         if (!userId) {
@@ -403,10 +501,38 @@ export const updateUserProfile = async (req: Request, res: Response) => {
             });
         }
 
-        const body = req.body as BodyCreateUser;
+        const body = req.body as BodyUpdateUser;
         if (!body) {
             return responseAPI(res, {status: 400, message: "No data provided"});
         };
+
+        if (!body.name) {
+            return responseAPI(res, {
+                status: 400,
+                message: 'Name is required',
+            });
+        }
+
+        if (!body.username) {
+            return responseAPI(res, {
+                status: 400,
+                message: 'Username is required',
+            });
+        }
+
+        if (!body.email) {
+            return responseAPI(res, {
+                status: 400,
+                message: 'Email is required',
+            });
+        }
+
+        if (!body.role) {
+            return responseAPI(res, {
+                status: 400,
+                message: 'Role is required',
+            });
+        }
 
         const existingUser = await prismaClient.user.findUnique({
             where: {
@@ -429,12 +555,26 @@ export const updateUserProfile = async (req: Request, res: Response) => {
             avatarUrl = await uploadToSupabaseStorage(req.file, existingUser.username);
         }
 
+        if (body.password) {
+            const hashed = await bcrypt.hash(body.password, 10)
+            body.password = hashed;
+        } else {
+            if (!existingUser) {
+                return responseAPI(res, {
+                    status: 404,
+                    message: 'User not found',
+                });
+            }
+            body.password = existingUser.password; // Keep the existing password if not provided
+        }
+
         await prismaClient.user.update({
             where: { id: userId },
             data: {
-                name: body.name || existingUser.name,
-                username: body.username || existingUser.username,
-                email: body.email || existingUser.email,
+                name: body.name,
+                username: body.username,
+                email: body.email,
+                password: body.password,
                 photo: avatarUrl || existingUser.photo,
                 updatedBy: {
                     connect: {
