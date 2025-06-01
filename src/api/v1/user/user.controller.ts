@@ -210,6 +210,55 @@ export const getAllUser = async (req: Request, res: Response) => {
     }
 }
 
+export const getUserById = async (req: Request, res: Response) => {
+    try {
+        const id = Number(req.params.id);
+        if (!id) {
+            return responseAPI(res, {
+                status: 400,
+                message: 'User ID is required',
+            });
+        }
+
+        const user = await prismaClient.user.findUnique({
+            where: { id: id },
+            select: {
+                id: true,
+                name: true,
+                username: true,
+                email: true,
+                photo: true,
+                createdAt: true,
+                updatedAt: true,
+                roles: {
+                    select: {
+                        id: true,
+                        name: true,
+                    }
+                }
+            }
+        });
+
+        if (!user) {
+            return responseAPI(res, {
+                status: 404,
+                message: 'User not found',
+            });
+        }
+
+        responseAPIData(res, {
+            status: 200,
+            message: 'User retrieved successfully',
+            data: user,
+        });
+    } catch (error) {
+        responseAPI(res, {
+            status: 500,
+            message: 'Internal server error',
+        });
+    }
+}
+
 export const updateUser = async (req: Request, res: Response) => {
     try {
         const id = Number(req.params.id);

@@ -123,6 +123,60 @@ export const getAllStore = async (req: Request, res: Response) => {
     }
 }
 
+export const getStoreById = async (req: Request, res: Response) => {
+    try {
+        const id = Number(req.params.id);
+        if (!id) {
+            responseAPI(res, {
+                status: 400,
+                message: "ID is required",
+            });
+            return;
+        }
+
+        const store = await prismaClient.store.findUnique({
+            where: { id: id },
+            select: {
+                id: true,
+                name: true,
+                createdAt: true,
+                updatedAt: true,
+                createdBy: {
+                    select: {
+                        id: true,
+                        name: true,
+                    }
+                },
+                updatedBy: {
+                    select: {
+                        id: true,
+                        name: true,
+                    }
+                },
+            }
+        });
+
+        if (!store) {
+            responseAPI(res, {
+                status: 404,
+                message: "Store not found",
+            });
+            return;
+        }
+
+        responseAPIData(res, {
+            status: 200,
+            message: "Store retrieved successfully",
+            data: store,
+        });
+    } catch (error) {
+        responseAPI(res, {
+            status: 500,
+            message: "Internal server error",
+        });
+    }
+}
+
 export const updateStore = async (req: Request, res: Response) => {
     try {
         const tokenHead = req.headers['authorization']?.split(' ')[1] as string;
