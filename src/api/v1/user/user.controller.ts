@@ -9,6 +9,7 @@ import { validateToken } from "../auth/auth.controller";
 import bcrypt from 'bcryptjs'
 import config from "../../../config";
 import { BodyUpdateUser } from "../../../dto/user.dto";
+import { parseSort } from "../../utils/data.util";
 
 const supabaseStorage = createClient(config.bucketUrl, config.bucketKey);
 const bucketName = config.bucketName;
@@ -185,6 +186,18 @@ export const getAllUser = async (req: Request, res: Response) => {
                 }
             },
         } as IQuery;
+
+        const orderBy = parseSort({
+            sortBy: queryParams.sortBy,
+            sortOrder: queryParams.sortOrder,
+        });
+        if (orderBy) {
+            queryTable = {
+                ...queryTable,
+                orderBy,
+            };
+        }
+
         if (queryParams.page || queryParams.limit) {
             const paramPage = queryParams.page ? Number(queryParams.page) : 1;
             const paramLimit = queryParams.limit ? Number(queryParams.limit) : 10;
