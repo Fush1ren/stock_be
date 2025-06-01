@@ -147,7 +147,7 @@ export const deleteUnit = async (req: Request, res: Response) => {
             })
         ]);
 
-        if (existingUnitId.length > 0) {
+        if (existingUnitId.length === 0) {
             responseAPI(res, {
                 status: 400,
                 message: 'Unit ID is required for all units!',
