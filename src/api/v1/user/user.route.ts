@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { createUser, getAllUser, getUserById, getUserProfile, updateUser, updateUserProfile } from './user.controller';
+import { createUser, deleteUser, getAllUser, getUserById, getUserProfile, updateUser, updateUserProfile } from './user.controller';
 import multer from 'multer';
 import { verifyToken } from '../../../middleware';
 
@@ -13,6 +13,6 @@ userRouter.get('/:id', verifyToken, getUserById);
 userRouter.post('/', verifyToken, upload.single('photo'), createUser);
 userRouter.put('/:id', upload.single('photo'), verifyToken, updateUser)
 userRouter.put('/profile/:id', verifyToken, upload.single('photo'), updateUserProfile);
-userRouter.delete('/', verifyToken, updateUser); 
+userRouter.delete('/', verifyToken, deleteUser); 
 
 export default userRouter;
