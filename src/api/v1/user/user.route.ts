@@ -11,7 +11,7 @@ userRouter.get('/', verifyToken, getAllUser);
 userRouter.get('/profile/:id', verifyToken, getUserProfile);
 userRouter.get('/:id', verifyToken, getUserById);
 userRouter.post('/', verifyToken, upload.single('photo'), createUser);
-userRouter.put('/:id', verifyToken, updateUser)
+userRouter.put('/:id', upload.single('photo'), verifyToken, updateUser)
 userRouter.put('/profile/:id', verifyToken, upload.single('photo'), updateUserProfile);
 userRouter.delete('/', verifyToken, updateUser); 
 
