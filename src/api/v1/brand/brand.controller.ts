@@ -169,6 +169,10 @@ export const deleteBrand = async (req: Request, res: Response) => {
                 }
             }
         })
+        responseAPI(res, {
+            status: 200,
+            message: 'Brand deleted successfully',
+        });
     } catch (error) {
         responseAPI(res, {
             status: 500,
