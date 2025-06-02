@@ -343,6 +343,82 @@ export const getAllProducts = async (req: Request, res: Response) => {
     }
 }
 
+export const getProductById = async (req: Request, res: Response) => {
+    try {
+        const id = Number(req.params.id);
+        if (!id) {
+            responseAPI(res, {
+                status: 400,
+                message: 'Product ID is required',
+            });
+            return;
+        }
+
+        const product = await prismaClient.product.findUnique({
+            where: {
+                id: id,
+            },
+            select: {
+                id: true,
+                name: true,
+                code: true,
+                description: true,
+                createdAt: true,
+                updatedAt: true,
+                category: {
+                    select: {
+                        id: true,
+                        name: true,
+                    }
+                },
+                unit: {
+                    select: {
+                        id: true,
+                        name: true,
+                    }
+                },
+                brand: {
+                    select: {
+                        id: true,
+                        name: true,
+                    }
+                },
+                createdBy: {
+                    select: {
+                        id: true,
+                        name: true,
+                    }
+                },
+                updatedBy: {
+                    select: {
+                        id: true,
+                        name: true,
+                    }
+                },
+            }
+        });
+
+        if (!product) {
+            responseAPI(res, {
+                status: 404,
+                message: 'Product not found',
+            });
+            return;
+        }
+
+        responseAPIData(res, {
+            status: 200,
+            message: "Product retrieved successfully",
+            data: product
+        });
+    } catch (error) {
+        responseAPI(res, {
+            status: 500,
+            message: "Internal server error",
+        });
+    }
+}
+
 export const getNextIndex = async (_req: Request, res: Response) => {
     try {
         const lastProduct = await prismaClient.product.findFirst({
