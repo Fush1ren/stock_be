@@ -36,10 +36,16 @@ const uploadToSupabaseStorage = async (file: Express.Multer.File, username: stri
 
 const deleteFromSupabaseStorage = async (avatarUrl: string): Promise<void> => {
     try {
-        const filePath = avatarUrl.split('/storage/v1/object/public/')[1];
+       const publicPrefix = '/storage/v1/object/public/';
+        const startIndex = avatarUrl.indexOf(publicPrefix);
+        if (startIndex === -1) return;
 
-        if (!filePath) return;
-        await supabaseStorage.storage.from(bucketName).remove([filePath]);
+        // Ambil path relatif terhadap bucket
+        const fullPath = avatarUrl.substring(startIndex + publicPrefix.length); 
+        const bucket = fullPath.split('/')[0]; // Misal: 'avatars'
+        const filePath = fullPath.split('/').slice(1).join('/'); // Misal: 'user123/avatar.jpg'
+
+        await supabaseStorage.storage.from(bucket).remove([filePath]);
     } catch (error) {
         console.error('Error deleting file from Supabase Storage:', error);
     }

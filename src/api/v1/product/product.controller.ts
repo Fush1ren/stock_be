@@ -19,184 +19,94 @@ export const createProduct = async (req: Request, res: Response) => {
             return;
         }
 
-        const body = req.body as BodyCreateProduct[];
+        const body = req.body as BodyCreateProduct;
 
-        if (!body || body.length === 0) {
+        if (!body) {
             responseAPI(res, {
                 status: 400,
                 message: 'No data provided',
             });
+            return;
         }
 
-        const invalidName = body.find(
-            item => typeof item.name !== 'string' || item.name.trim() === ''
-        )
-
-        const invalidCode = body.find(
-            item => typeof item.code !== 'string' || item.code.trim() === ''
-        )
-
-        const invalidCategoryId = body.find(
-            item => typeof item.categoryId !== 'number'
-        )
-
-        const invalidUnitId = body.find(
-            item => typeof item.unitId !== 'number'
-        )
-
-        const invalidBrandId = body.find(
-            item => typeof item.brandId !== 'number'
-        )
-
-        if (invalidName) {
+        if (!body.name || typeof body.name !== 'string' || body.name.trim() === '') {
             responseAPI(res, {
                 status: 400,
-                message: "Name is required",
-            });
-        }
-
-        if (!invalidCode) {
-            responseAPI(res, {
-                status: 400,
-                message: "Product code is required",
-            });
-        }
-
-        if (!invalidCategoryId) {
-            responseAPI(res, {
-                status: 400,
-                message: "Category ID is required",
-            });
-        }
-
-        if (!invalidUnitId) {
-            responseAPI(res, {
-                status: 400,
-                message: "Unit ID is required",
-            });
-        }
-
-        if (!invalidBrandId) {
-            responseAPI(res, {
-                status: 400,
-                message: "Brand ID is required",
-            });
-        }
-
-        // Ambil ID unik
-        const categoryIds = [...new Set(body.map(item => item.categoryId))];
-        const unitIds = [...new Set(body.map(item => item.unitId))];
-        const brandIds = [...new Set(body.map(item => item.brandId))];
-
-        // Query database
-        const [existingCategories, existingUnits, existingBrands] = await Promise.all([
-            prismaClient.category.findMany({
-                where: { id: { in: categoryIds } },
-                select: { id: true }
-            }),
-            prismaClient.unit.findMany({
-                where: { id: { in: unitIds } },
-                select: { id: true }
-            }),
-            prismaClient.brand.findMany({
-                where: { id: { in: brandIds } },
-                select: { id: true }
-            })
-        ]);
-
-        // Ambil ID yang ditemukan
-        const existingCategoryIds = new Set(existingCategories.map(c => c.id));
-        const existingUnitIds = new Set(existingUnits.map(u => u.id));
-        const existingBrandIds = new Set(existingBrands.map(b => b.id));
-
-        // Cek apakah ada ID yang tidak ditemukan
-        const missingCategory = categoryIds.find(id => !existingCategoryIds.has(id));
-        const missingUnit = unitIds.find(id => !existingUnitIds.has(id));
-        const missingBrand = brandIds.find(id => !existingBrandIds.has(id));
-
-        if (missingCategory) {
-            responseAPI(res, {
-                status: 400,
-                message: `Category ID ${missingCategory} does not exist`,
+                message: 'Name is required',
             });
             return;
         }
 
-        if (missingUnit) {
+        if (!body.code || typeof body.code !== 'string' || body.code.trim() === '') {
             responseAPI(res, {
                 status: 400,
-                message: `Unit ID ${missingUnit} does not exist`,
+                message: 'Code is required',
             });
             return;
         }
 
-        if (missingBrand) {
+        if (!body.unitId || typeof body.unitId !== 'number') {
             responseAPI(res, {
                 status: 400,
-                message: `Brand ID ${missingBrand} does not exist`,
+                message: 'Unit ID is required',
             });
             return;
         }
 
-        const name = body.map(item => item.name.trim());
-        const code = body.map(item => item.code.trim());
+        if (!body.categoryId || typeof body.categoryId !== 'number') {
+            responseAPI(res, {
+                status: 400,
+                message: 'Category ID is required',
+            });
+            return;
+        }
 
-        const existingProduct = await prismaClient.product.findMany({
+        if (!body.brandId || typeof body.brandId !== 'number') {
+            responseAPI(res, {
+                status: 400,
+                message: 'Brand ID is required',
+            });
+            return;
+        }
+
+        const existingProduct = await prismaClient.product.findUnique({
             where: {
-                OR: [
-                        {
-                            name: 
-                                {
-                                    in: name,
-                                }
-                        },
-                        {
-                            code: 
-                                {
-                                    in: code,
-                                }
-                        }
-                    ]
+                code: body.code.trim(),
             },
         });
 
-        if (existingProduct.length > 0) {
+        if (existingProduct) {
             responseAPI(res, {
                 status: 400,
-                message: "Product already exists",
+                message: 'Product with this code already exists',
             });
             return;
         }
 
-        await Promise.all(
-            body.map(item =>
-            prismaClient.product.create({
-                data: {
-                    name: item.name.trim(),
-                    code: item.code.trim(),
-                    description: item.description || null,
-                    category: {
-                        connect: {
-                            id: item.categoryId,
-                        }
-                    },
-                    unit: {
-                        connect: {
-                            id: item.unitId,
-                        }
-                    },
-                    brand: {
-                        connect: {
-                            id: item.brandId,
-                        }
-                    },
-                    createdBy: { connect: { id: user.id } },
-                    updatedBy: { connect: { id: user.id } },
+        await prismaClient.product.create({
+            data: {
+                name: body.name.trim(),
+                code: body.code.trim(),
+                description: body.description ? body.description.trim() : null,
+                category: {
+                  connect: {
+                    id: body.categoryId,
+                  }
                 },
-            })
-            )
-        );
-
+                unit: {
+                    connect: {
+                        id: body.unitId,
+                    }
+                },
+                brand: {
+                    connect: {
+                        id: body.brandId,
+                    }
+                },
+                createdBy: { connect: { id: user.id } },
+                updatedBy: { connect: { id: user.id } },
+            }
+        });
         responseAPI(res, {
             status: 201,
             message: "Product created successfully",
