@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { prismaClient } from "../../config";
-import { getPage, responseAPI, responseAPITable } from "../../utils";
+import { getPage, responseAPI, responseAPIData, responseAPITable } from "../../utils";
 import { QueryParams } from "../../dto";
 import { IQuery } from "../../types/data.type";
 import { validateToken } from "../auth/auth.controller";
@@ -430,5 +430,31 @@ export const getAllProducts = async (req: Request, res: Response) => {
             status: 500,
             message: "Internal server error",
         })
+    }
+}
+
+export const getNextIndex = async (_req: Request, res: Response) => {
+    try {
+        const lastProduct = await prismaClient.product.findFirst({
+            orderBy: {
+                id: 'desc',
+            },
+            select: {
+                id: true,
+            },
+        });
+
+        const nextIndex = lastProduct ? lastProduct.id + 1 : 1;
+
+        responseAPIData(res, {
+            status: 200,
+            message: "Next index retrieved successfully",
+            data: { nextIndex },
+        });
+    } catch (error) {
+        responseAPI(res, {
+            status: 500,
+            message: "Internal server error",
+        });
     }
 }
