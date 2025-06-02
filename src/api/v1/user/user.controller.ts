@@ -8,7 +8,7 @@ import { IQuery } from "../../types/data.type";
 import { validateToken } from "../auth/auth.controller";
 import bcrypt from 'bcryptjs'
 import config from "../../../config";
-import { BodyUpdateUser } from "../../../dto/user.dto";
+import { BodyUpdateProfile, BodyUpdateUser } from "../../../dto/user.dto";
 import { parseSort } from "../../utils/data.util";
 
 const supabaseStorage = createClient(config.bucketUrl, config.bucketKey);
@@ -475,8 +475,6 @@ export const getUserProfile = async (req: Request, res: Response) => {
                 username: true,
                 email: true,
                 photo: true,
-                createdAt: true,
-                updatedAt: true,
                 roles: {
                     select: {
                         id: true,
@@ -490,6 +488,13 @@ export const getUserProfile = async (req: Request, res: Response) => {
             return responseAPI(res, {
                 status: 404,
                 message: 'User not found',
+            });
+        }
+
+        if (userId !== userProfile.id) {
+            return responseAPI(res, {
+                status: 403,
+                message: 'Forbidden: You do not have permission to access this resource',
             });
         }
 
@@ -526,7 +531,7 @@ export const updateUserProfile = async (req: Request, res: Response) => {
             });
         }
 
-        const body = req.body as BodyUpdateUser;
+        const body = req.body as BodyUpdateProfile;
         if (!body) {
             return responseAPI(res, {status: 400, message: "No data provided"});
         };
@@ -549,13 +554,6 @@ export const updateUserProfile = async (req: Request, res: Response) => {
             return responseAPI(res, {
                 status: 400,
                 message: 'Email is required',
-            });
-        }
-
-        if (!body.role) {
-            return responseAPI(res, {
-                status: 400,
-                message: 'Role is required',
             });
         }
 
@@ -606,11 +604,6 @@ export const updateUserProfile = async (req: Request, res: Response) => {
                         id: userId,
                     }
                 },
-                roles: {
-                    connect: {
-                        id: Number(body.role),
-                    },
-                }
             }
         });
 

@@ -15,3 +15,5 @@ export interface BodyUpdateUser {
     photo?: string | undefined;
     role: number;
 }
+
+export type BodyUpdateProfile = Omit<BodyUpdateUser, 'role'>;
