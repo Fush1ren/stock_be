@@ -114,7 +114,7 @@ model Unit {
 
 model Brand {
     id        Int   @id @default(autoincrement()) @db.Integer
-    name      String @db.VarChar(25) @unique
+    name      String @db.VarChar(30) @unique
     createdAt DateTime @default(now()) @db.Timestamptz()
     updatedAt DateTime @updatedAt @db.Timestamptz()
 
@@ -130,7 +130,7 @@ model Brand {
 
 model Category {
     id        Int   @id @default(autoincrement()) @db.Integer
-    name      String @db.VarChar(25) @unique
+    name      String @db.VarChar(50) @unique
     createdAt DateTime @default(now()) @db.Timestamptz()
     updatedAt DateTime @updatedAt @db.Timestamptz()
 
