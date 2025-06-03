@@ -9,7 +9,7 @@ export interface BodyCreateStoreStock {
 
 export type BodyCreateWareHouseStock = Omit<BodyCreateStoreStock, 'storeId'>;
 
-export type ProductStockIn = Omit<BodyCreateStoreStock, 'storeId'>;
+export type ProductStockIn = Omit<BodyCreateStoreStock, 'storeId' | 'status'>;;
 
 export type ProductStockMutation = Omit<BodyCreateStoreStock, 'storeId'>;
 
