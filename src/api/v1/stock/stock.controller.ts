@@ -1,10 +1,11 @@
 import { Request, Response } from "express";
-import { getPage, responseAPI, responseAPIData, responseAPITable } from "../../utils";
+import { getPage, responseAPI, responseAPIData, responseAPITable, validateStockInPayload } from "../../utils";
 import { prismaClient } from "../../config";
-import { InsertUpdateQuery, IQuery } from "../../types/data.type";
+import { IQuery } from "../../types/data.type";
 import { BodyCreateStockIn, BodyCreateStockMutation, BodyCreateStockOut, BodyCreateStoreStock, BodyCreateWareHouseStock } from "../../../dto/stock.dto";
 import { QueryParams } from "../../dto";
 import { validateToken } from "../auth/auth.controller";
+import { validateStockMutationPayload, validateStockOutPayload } from "../../utils/validation";
 
 export const createStoreStock = async (req: Request, res: Response) => {
     try {
@@ -161,92 +162,22 @@ export const createStockIn = async (req: Request, res: Response) => {
             });
             return;
         }
-        const { transactionCode, date, toWarehouse, storeId, products } = req.body as BodyCreateStockIn;
-
-        const queryTable =             {
-            data: {
-                transactionCode: transactionCode,
-                date: new Date(date),
-                createdBy: {
-                    connect: {
-                        id: user.id,
-                    }
-                },
-                updatedBy: {
-                    connect: {
-                        id: user.id,
-                    }
-                },
-                StockInDetail: {
-                    create:  products.map((product) => ({
-                        productId: product.productId,
-                        quantity: product.quantity,
-                    })),
-                }
-            },
-            include: {
-                StockInDetail: true,
-            }
-        } as InsertUpdateQuery;
-
-        if (!transactionCode) {
+        const body = req.body as BodyCreateStockIn;
+        const validation = validateStockInPayload(body);
+        if (!validation.valid) {
             responseAPI(res, {
                 status: 400,
-                message: "Code is required",
-            });
-        }
-        if (!date) {
-            responseAPI(res, {
-                status: 400,
-                message: "Date is required",
-            });
+                message: validation.message as string,
+            })
         }
 
-        if (!toWarehouse) {
-            if (!storeId) {
-                responseAPI(res, {
-                    status: 400,
-                    message: "Store ID is required",
-                });
-            }
-            queryTable.data.store = {
-                connect: {
-                    id: storeId,
-                }
-            };
-        }
-
-        if (!products || products.length === 0) {
-            responseAPI(res, {
-                status: 400,
-                message: "Products are required",
-            });
-        }
-
-        products.find((product) => {
-            if (!product.productId) {
-                responseAPI(res, {
-                    status: 400,
-                    message: "Product ID is required",
-                });
-                return;
-            }
-            if (!product.quantity) {
-                responseAPI(res, {
-                    status: 400,
-                    message: "Quantity is required",
-                });
-                return;
-            }
-        });
-
-        const existingStockIn = await prismaClient.stockIn.findUnique({
+        const existing = await prismaClient.stockIn.findFirst({
             where: {
-                transactionCode: transactionCode,
-            },
+                transactionCode: body.transactionCode,
+            }
         });
 
-        if (existingStockIn) {
+        if (existing) {
             responseAPI(res, {
                 status: 400,
                 message: "Stock in with this code already exists",
@@ -254,7 +185,83 @@ export const createStockIn = async (req: Request, res: Response) => {
             return;
         }
 
-        await prismaClient.stockIn.create(queryTable);
+        await prismaClient.stockIn.create({
+            data: {
+                transactionCode: body.transactionCode,
+                date: new Date(body.date),
+                toWarehouse: body.toWarehouse,
+                storeId: body.toWarehouse ? null : body.storeId,
+                StockInDetail: {
+                    create: body.products.map((product) => ({
+                        productId: product.productId,
+                        quantity: product.quantity,
+                    })),
+                },
+                createdById: user.id,
+                updatedById: user.id,
+            },
+            include: {
+                StockInDetail: true,
+            }
+        });
+
+        for (const item of body.products) {
+            if (body.toWarehouse) {
+                const existingStock = await prismaClient.wareHouseStock.findFirst({
+                    where: { productId: item.productId },
+                });
+
+                if (existingStock) {
+                    await prismaClient.wareHouseStock.update({
+                        where: { id: existingStock.id },
+                        data: {
+                            quantity: { increment: item.quantity },
+                            updatedById: user.id,
+                        },
+                    });
+                } else {
+                    await prismaClient.wareHouseStock.create({
+                        data: {
+                            productId: item.productId,
+                            quantity: item.quantity,
+                            status: 'available',
+                            createdById: user.id,
+                            updatedById: user.id,
+                        },
+                    });
+                }
+            } else {
+                const existingStoreStock = await prismaClient.storeStock.findFirst({
+                    where: {
+                        productId: item.productId,
+                        storeId: body.storeId!,
+                    },
+                });
+
+                if (existingStoreStock) {
+                    await prismaClient.storeStock.update({
+                        where: { id: existingStoreStock.id },
+                        data: {
+                            quantity: { increment: item.quantity },
+                            updatedById: user.id,
+                        },
+                    });
+                } else {
+                    await prismaClient.storeStock.create({
+                        data: {
+                            productId: item.productId,
+                            storeId: body.storeId!,
+                            quantity: item.quantity,
+                            threshold: 0,
+                            status: 'available',
+                            createdById: user.id,
+                            updatedById: user.id,
+                        },
+                    });
+                }
+            }
+        }
+
         responseAPI(res, {
             status: 201,
             message: "Stock in created successfully",
@@ -266,8 +273,6 @@ export const createStockIn = async (req: Request, res: Response) => {
         });
     }
 }
-
-
 
 export const getStockInNextCode = async (req: Request, res: Response) => {
     try {
@@ -316,92 +321,72 @@ export const createStockOut = async (req: Request, res: Response) => {
             });
             return;
         }
-        const { transactionCode, date, storeId, products } = req.body as BodyCreateStockOut;
+        const body = req.body as BodyCreateStockOut;
 
-        const queryTable = {
-            data: {
-                transactionCode: transactionCode,
-                date: new Date(date),
-                createdBy: {
-                    connect: {
-                        id: user.id,
-                    }
-                },
-                updatedBy: {
-                    connect: {
-                        id: user.id,
-                    }
-                },
-                StockOutDetail: {
-                    create:  products.map((product) => ({
-                        productId: product.productId,
-                        quantity: product.quantity,
-                    })),
-                }
-            },
-            include: {
-                StockOutDetail: true,
-            }
-        } as InsertUpdateQuery;
-
-        if (!transactionCode) {
+        const validation = validateStockOutPayload(body);
+        if (!validation.valid) {
             responseAPI(res, {
                 status: 400,
-                message: "Code is required",
+                message: validation.message as string,
             });
-        }
-        if (!date) {
-            responseAPI(res, {
-                status: 400,
-                message: "Date is required",
-            });
+            return;
         }
 
-        if (!storeId) {
-            responseAPI(res, {
-                status: 400,
-                message: "Store ID is required",
-            });
-        }
-
-        if (!products || products.length === 0) {
-            responseAPI(res, {
-                status: 400,
-                message: "Products are required",
-            });
-        }
-
-        products.find((product) => {
-            if (!product.productId) {
-                responseAPI(res, {
-                    status: 400,
-                    message: "Product ID is required",
-                });
-                return;
-            }
-            if (!product.quantity) {
-                responseAPI(res, {
-                    status: 400,
-                    message: "Quantity is required",
-                });
-                return;
-            }   
-        });
-
-        const existingStockOut = await prismaClient.stockOut.findUnique({
+        const existing = await prismaClient.stockOut.findFirst({
             where: {
-                transactionCode: transactionCode,
-            },
-        });
-        if (existingStockOut) {
+                transactionCode: body.transactionCode,
+            }
+        })
+
+        if (existing) {
             responseAPI(res, {
                 status: 400,
                 message: "Stock out with this code already exists",
             });
             return;
+        };
+
+        for (const item of body.products) {
+            const stock = await prismaClient.wareHouseStock.findFirst({
+                where: { productId: item.productId },
+            });
+
+            if (!stock || stock.quantity < item.quantity) {
+                responseAPI(res, {
+                    status: 400,
+                    message: `Insufficient stock for product ID ${item.productId}.`,
+                });
+                return;
+            }
+
+            await prismaClient.wareHouseStock.update({
+                where: { id: stock.id },
+                data: {
+                    quantity: { decrement: item.quantity },
+                    updatedById: user.id,
+                },
+            });
         }
 
-        await prismaClient.stockOut.create(queryTable);
+        await prismaClient.stockOut.create({
+            data: {
+                transactionCode: body.transactionCode,
+                date: new Date(body.date),
+                storeId: body.storeId,
+                createdById: user.id,
+                updatedById: user.id,
+                StockOutDetail: {
+                    create: body.products.map((product) => ({
+                        productId: product.productId,
+                        quantity: product.quantity,
+                    })),
+                },
+            },
+            include: {
+                StockOutDetail: true,
+            }
+        });
+
         responseAPI(res, {
             status: 201,
             message: "Stock out created successfully",
@@ -461,110 +446,26 @@ export const createStockMutation = async (req: Request, res: Response) => {
             });
             return;
         }
-        const { transactionCode, date, fromWarehouse, toStoreId, fromStoreId, products } = req.body as BodyCreateStockMutation;
 
-        const queryTable = {
-            data: {
-                stockMutationCode: transactionCode,
-                date: new Date(date),
-                fromWarehouse: {
-                    connect: {
-                        id: fromWarehouse,
-                    }
-                },
-                toStore: {
-                    connect: {
-                        id: toStoreId,
-                    }
-                },
-                createdBy: {
-                    connect: {
-                        id: user.id,
-                    }
-                },
-                updatedBy: {
-                    connect: {
-                        id: user.id,
-                    }
-                },
-                StockMutationDetail: {
-                    create:  products.map((product) => ({
-                        productId: product.productId,
-                        quantity: product.quantity,
-                    })),
-                }
-            },
-            include: {
-                StockMutationDetail: true,
-            }
-        } as InsertUpdateQuery;
+        const body = req.body as BodyCreateStockMutation;
 
-        if (!transactionCode) {
+        const validation = validateStockMutationPayload(body);
+
+        if (!validation.valid) {
             responseAPI(res, {
                 status: 400,
-                message: "Stock mutation code is required",
+                message: validation.message as string,
             });
+            return;
         }
 
-        if (!date) {
-            responseAPI(res, {
-                status: 400,
-                message: "Date is required",
-            });
-        }
-
-        if (!fromWarehouse) {
-            if (!fromStoreId) {
-                responseAPI(res, {
-                    status: 400,
-                    message: "From store ID is required",
-                });  
-            }
-            queryTable.data.fromStore = {
-                connect: {
-                    id: fromStoreId,
-                }
-            };
-        }
-
-        if (!toStoreId) {
-            responseAPI(res, {
-                status: 400,
-                message: "To store ID is required",
-            });
-        }
-
-        if (!products || products.length === 0) {
-            responseAPI(res, {
-                status: 400,
-                message: "Products are required",
-            });
-        }
-
-        products.forEach((product) => {
-            if (!product.productId) {
-                responseAPI(res, {
-                    status: 400,
-                    message: "Product ID is required",
-                });
-                return;
-            }
-            if (!product.quantity) {
-                responseAPI(res, {
-                    status: 400,
-                    message: "Quantity is required",
-                });
-                return;
-            }
-        });
-
-        const existingStockMutation = await prismaClient.stockMutation.findUnique({
+        const existing = await prismaClient.stockMutation.findFirst({
             where: {
-                transactionCode: transactionCode,
-            },
+                transactionCode: body.transactionCode,
+            }
         });
 
-        if (existingStockMutation) {
+        if (existing) {
             responseAPI(res, {
                 status: 400,
                 message: "Stock mutation with this code already exists",
@@ -572,8 +473,63 @@ export const createStockMutation = async (req: Request, res: Response) => {
             return;
         }
 
-        // Logic to create stock mutation goes here
-        await prismaClient.stockMutation.create(queryTable);
+        for (const item of body.products) {
+            const stock = body.fromWarehouse 
+                ? await prismaClient.wareHouseStock.findFirst({
+                    where: { productId: item.productId },
+                })
+                : await prismaClient.storeStock.findFirst({
+                    where: { productId: item.productId, storeId: body.fromStoreId! },
+                });
+
+            if (!stock || stock.quantity < item.quantity) {
+                responseAPI(res, {
+                    status: 400,
+                    message: `Insufficient stock for product ID ${item.productId}.`,
+                });
+                return;
+            }
+
+            if (body.fromWarehouse) {
+                await prismaClient.wareHouseStock.update({
+                    where: { id: stock.id },
+                    data: {
+                        quantity: { decrement: item.quantity },
+                        updatedById: user.id,
+                    },
+                });
+            } else {
+                await prismaClient.storeStock.update({
+                    where: { id: stock.id },
+                    data: {
+                        quantity: { decrement: item.quantity },
+                        updatedById: user.id,
+                    },
+                });
+            }
+        }
+
+        await prismaClient.stockMutation.create({
+            data: {
+                transactionCode: body.transactionCode,
+                date: new Date(body.date),
+                fromWarehouse: body.fromWarehouse,
+                fromStoreId: body.fromWarehouse ? null : body.fromStoreId,
+                toStoreId: body.toStoreId,
+                createdById: user.id,
+                updatedById: user.id,
+                StockMutationDetail: {
+                    create: body.products.map((product) => ({
+                        productId: product.productId,
+                        quantity: product.quantity,
+                    })),
+                },
+            },
+            include: {
+                StockMutationDetail: true,
+            }
+        });
+
         responseAPI(res, {
             status: 201,
             message: "Stock mutation created successfully",

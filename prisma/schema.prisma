@@ -229,7 +229,7 @@ model StockIn {
 
 
     toStore Store? @relation(fields: [storeId], references: [id])
-    createdBy  User @relation("StockInCreatedBy", fields: [createdById], references: [id])
+    createdBy User @relation("StockInCreatedBy", fields: [createdById], references: [id])
     updatedBy User @relation("StockInUpdatedBy", fields: [updatedById], references: [id])
 
     @@map("stock_in")
