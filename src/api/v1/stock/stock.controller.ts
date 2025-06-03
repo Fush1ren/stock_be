@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { getPage, responseAPI, responseAPITable } from "../../utils";
+import { getPage, responseAPI, responseAPIData, responseAPITable } from "../../utils";
 import { prismaClient } from "../../config";
 import { InsertUpdateQuery, IQuery } from "../../types/data.type";
 import { BodyCreateStockIn, BodyCreateStockMutation, BodyCreateStockOut, BodyCreateStoreStock, BodyCreateWareHouseStock } from "../../../dto/stock.dto";
@@ -267,6 +267,44 @@ export const createStockIn = async (req: Request, res: Response) => {
     }
 }
 
+
+
+export const getStockInNextCode = async (req: Request, res: Response) => {
+    try {
+        const tokenHead = req.headers['authorization']?.split(' ')[1] as string;
+        const user = await validateToken(tokenHead);
+        if (!user) {
+            responseAPI(res, {
+                status: 401,
+                message: 'Unauthorized',
+            });
+            return;
+        }
+
+        const lastStockIn = await prismaClient.stockIn.findFirst({
+            orderBy: {
+                createdAt: 'desc',
+            },
+            select: {
+                id: true,
+            },
+        });
+
+        const nextCode = lastStockIn ? lastStockIn.id + 1 : 1;
+
+        responseAPIData(res, {
+            status: 200,
+            message: "Next stock in code retrieved successfully",
+            data: { nextCode },
+        });
+    } catch (error) {
+        responseAPI(res, {
+            status: 500,
+            message: "Internal server error",
+        });
+    }
+}
+
 export const createStockOut = async (req: Request, res: Response) => {
     try {
         const tokenHead = req.headers['authorization']?.split(' ')[1] as string;
@@ -367,6 +405,42 @@ export const createStockOut = async (req: Request, res: Response) => {
         responseAPI(res, {
             status: 201,
             message: "Stock out created successfully",
+        });
+    } catch (error) {
+        responseAPI(res, {
+            status: 500,
+            message: "Internal server error",
+        });
+    }
+}
+
+export const getStockOutNextCode = async (req: Request, res: Response) => {
+    try {
+        const tokenHead = req.headers['authorization']?.split(' ')[1] as string;
+        const user = await validateToken(tokenHead);
+        if (!user) {
+            responseAPI(res, {
+                status: 401,
+                message: 'Unauthorized',
+            });
+            return;
+        }
+
+        const lastStockOut = await prismaClient.stockOut.findFirst({
+            orderBy: {
+                createdAt: 'desc',
+            },
+            select: {
+                id: true,
+            },
+        });
+
+        const nextCode = lastStockOut ? lastStockOut.id + 1 : 1;
+
+        responseAPIData(res, {
+            status: 200,
+            message: "Next stock out code retrieved successfully",
+            data: { nextCode },
         });
     } catch (error) {
         responseAPI(res, {
@@ -511,6 +585,42 @@ export const createStockMutation = async (req: Request, res: Response) => {
         });
     }
     
+}
+
+export const getStockMutationNextCode = async (req: Request, res: Response) => {
+    try {
+        const tokenHead = req.headers['authorization']?.split(' ')[1] as string;
+        const user = await validateToken(tokenHead);
+        if (!user) {
+            responseAPI(res, {
+                status: 401,
+                message: 'Unauthorized',
+            });
+            return;
+        }
+
+        const lastStockMutation = await prismaClient.stockMutation.findFirst({
+            orderBy: {
+                createdAt: 'desc',
+            },
+            select: {
+                id: true,
+            },
+        });
+
+        const nextCode = lastStockMutation ? lastStockMutation.id + 1 : 1;
+
+        responseAPIData(res, {
+            status: 200,
+            message: "Next stock mutation code retrieved successfully",
+            data: { nextCode },
+        });
+    } catch (error) {
+        responseAPI(res, {
+            status: 500,
+            message: "Internal server error",
+        });
+    }
 }
 
 export const getAllStoreStocks = async (req: Request, res: Response) => {
