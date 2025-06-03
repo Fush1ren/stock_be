@@ -162,6 +162,21 @@ export const deleteBrand = async (req: Request, res: Response) => {
             });
         }
 
+        const existingBrands = await prismaClient.brand.findMany({
+            where: {
+                id: {
+                    in: body.id
+                },
+            },
+        });
+
+        if (existingBrands.length === 0) {
+            return responseAPI(res, {
+                status: 404,
+                message: 'Brand not found',
+            });
+        }
+
         await prismaClient.brand.deleteMany({
             where: {
                 id: {
@@ -169,6 +184,7 @@ export const deleteBrand = async (req: Request, res: Response) => {
                 }
             }
         })
+
         responseAPI(res, {
             status: 200,
             message: 'Brand deleted successfully',

@@ -214,37 +214,37 @@ export const deleteProduct = async (req: Request, res: Response) => {
             return;
         }
 
-        const productIds = [...new Set(body.id.map((id) => id))];
-
-        const [ existingProductId ] = await Promise.all([
-            prismaClient.product.findMany({
-                where: {
-                    id: {
-                        in: productIds,
-                    },
-                },
-                select: {
-                    id: true,
-                },
-            })
-        ]);
-
-        if (existingProductId.length > 0) {
+        if (!body.id || !Array.isArray(body.id) || body.id.length === 0) {
             responseAPI(res, {
                 status: 400,
-                message: 'Unit ID is required for all units!',
+                message: 'Product IDs are required',
             });
             return;
         }
 
-        await Promise.all(
-            body.id.map(unit => prismaClient.product.delete({
-                where: {
-                    id: unit,
+        const existingProducts = await prismaClient.product.findMany({
+            where: {
+                id: {
+                    in: body.id,
                 }
-            }))
-        )
+            }
+        });
 
+        if (existingProducts.length === 0) {
+            responseAPI(res, {
+                status: 404,
+                message: 'No products found with the provided IDs',
+            });
+            return;
+        }
+
+        await prismaClient.product.deleteMany({
+            where: {
+                id: {
+                    in: body.id,
+                }
+            }
+        });
         responseAPI(res, {
             status: 200,
             message: 'Product deleted successfully',
