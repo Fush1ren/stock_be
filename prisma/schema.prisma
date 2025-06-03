@@ -215,7 +215,7 @@ model WareHouseStock {
 
 model StockIn {
     id        Int   @id @default(autoincrement()) @db.Integer
-    stockInCode String @unique @db.VarChar(10)
+    transactionCode String @unique @db.VarChar(10)
     date      DateTime @db.Timestamptz()
     createdAt DateTime @default(now()) @db.Timestamptz()
     updatedAt DateTime @updatedAt @db.Timestamptz()
@@ -250,7 +250,7 @@ model StockInDetail {
 
 model StockOut {
     id        Int   @id @default(autoincrement()) @db.Integer
-    stockOutCode String @unique @db.VarChar(10)
+    transactionCode String @unique @db.VarChar(10)
     date      DateTime @db.Timestamptz()
     createdAt DateTime @default(now()) @db.Timestamptz()
     updatedAt DateTime @updatedAt @db.Timestamptz()
@@ -283,7 +283,7 @@ model StockOutDetail {
 
 model StockMutation {
     id        Int   @id @default(autoincrement()) @db.Integer
-    stockMutationCode String @unique @db.VarChar(10)
+    transactionCode String @unique @db.VarChar(10)
     date      DateTime @db.Timestamptz()
     fromWarehouse Boolean @default(false)
     createdAt DateTime @default(now()) @db.Timestamptz()

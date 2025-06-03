@@ -161,11 +161,11 @@ export const createStockIn = async (req: Request, res: Response) => {
             });
             return;
         }
-        const { stockInCode, date, toWarehouse, storeId, products } = req.body as BodyCreateStockIn;
+        const { transactionCode, date, toWarehouse, storeId, products } = req.body as BodyCreateStockIn;
 
         const queryTable =             {
             data: {
-                stockInCode: stockInCode,
+                transactionCode: transactionCode,
                 date: new Date(date),
                 createdBy: {
                     connect: {
@@ -189,7 +189,7 @@ export const createStockIn = async (req: Request, res: Response) => {
             }
         } as InsertUpdateQuery;
 
-        if (!stockInCode) {
+        if (!transactionCode) {
             responseAPI(res, {
                 status: 400,
                 message: "Code is required",
@@ -242,7 +242,7 @@ export const createStockIn = async (req: Request, res: Response) => {
 
         const existingStockIn = await prismaClient.stockIn.findUnique({
             where: {
-                stockInCode: stockInCode,
+                transactionCode: transactionCode,
             },
         });
 
@@ -316,11 +316,11 @@ export const createStockOut = async (req: Request, res: Response) => {
             });
             return;
         }
-        const { stockOutCode, date, storeId, products } = req.body as BodyCreateStockOut;
+        const { transactionCode, date, storeId, products } = req.body as BodyCreateStockOut;
 
         const queryTable = {
             data: {
-                stockOutCode: stockOutCode,
+                transactionCode: transactionCode,
                 date: new Date(date),
                 createdBy: {
                     connect: {
@@ -344,7 +344,7 @@ export const createStockOut = async (req: Request, res: Response) => {
             }
         } as InsertUpdateQuery;
 
-        if (!stockOutCode) {
+        if (!transactionCode) {
             responseAPI(res, {
                 status: 400,
                 message: "Code is required",
@@ -390,7 +390,7 @@ export const createStockOut = async (req: Request, res: Response) => {
 
         const existingStockOut = await prismaClient.stockOut.findUnique({
             where: {
-                stockOutCode: stockOutCode,
+                transactionCode: transactionCode,
             },
         });
         if (existingStockOut) {
@@ -461,11 +461,11 @@ export const createStockMutation = async (req: Request, res: Response) => {
             });
             return;
         }
-        const { stockMutationCode, date, fromWarehouse, toStoreId, fromStoreId, products } = req.body as BodyCreateStockMutation;
+        const { transactionCode, date, fromWarehouse, toStoreId, fromStoreId, products } = req.body as BodyCreateStockMutation;
 
         const queryTable = {
             data: {
-                stockMutationCode: stockMutationCode,
+                stockMutationCode: transactionCode,
                 date: new Date(date),
                 fromWarehouse: {
                     connect: {
@@ -499,7 +499,7 @@ export const createStockMutation = async (req: Request, res: Response) => {
             }
         } as InsertUpdateQuery;
 
-        if (!stockMutationCode) {
+        if (!transactionCode) {
             responseAPI(res, {
                 status: 400,
                 message: "Stock mutation code is required",
@@ -560,7 +560,7 @@ export const createStockMutation = async (req: Request, res: Response) => {
 
         const existingStockMutation = await prismaClient.stockMutation.findUnique({
             where: {
-                stockMutationCode: stockMutationCode,
+                transactionCode: transactionCode,
             },
         });
 
