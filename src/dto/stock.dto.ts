@@ -16,7 +16,7 @@ export type ProductStockMutation = Omit<BodyCreateStoreStock, 'storeId'>;
 export type ProductStockOut = ProductStockIn;
 
 export interface BodyCreateStockIn {
-    stockInCode: string;
+    transactionCode: string;
     date: Date | string;
     toWarehouse: boolean;
     storeId: number;
@@ -24,14 +24,14 @@ export interface BodyCreateStockIn {
 }
 
 export interface BodyCreateStockOut {
-    stockOutCode: string;
+    transactionCode: string;
     date: Date | string;
     storeId: number;
     products: ProductStockOut[];
 }
 
 export interface BodyCreateStockMutation {
-    stockMutationCode: string;
+    transactionCode: string;
     date: Date | string;
     fromWarehouse: boolean;
     fromStoreId: number | null;
