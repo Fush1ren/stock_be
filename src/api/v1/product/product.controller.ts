@@ -444,3 +444,28 @@ export const getNextIndex = async (_req: Request, res: Response) => {
         });
     }
 }
+
+export const getProductDropdown = async (_req: Request, res: Response) => {
+    try {
+        const products = await prismaClient.product.findMany({
+            select: {
+                id: true,
+                name: true,
+            },
+            orderBy: {
+                name: 'asc',
+            },
+        });
+
+        responseAPIData(res, {
+            status: 200,
+            message: "Products retrieved successfully",
+            data: products,
+        });
+    } catch (error) {
+        responseAPI(res, {
+            status: 500,
+            message: "Internal server error",
+        });
+    }
+}
