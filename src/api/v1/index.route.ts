@@ -58,7 +58,7 @@ const apiRoutes: APIRoute[] = [
         route: productRoute,
     },
     {
-        path: 'stock',
+        path: '/stock',
         route: stockRoute,
     }
 ]
