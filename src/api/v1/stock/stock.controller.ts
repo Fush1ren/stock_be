@@ -713,7 +713,7 @@ export const getAllStocksIn = async (req: Request, res: Response) => {
         let queryTable = {
             select: {
                 id: true,
-                stockInCode: true,
+                transactionCode: true,
                 date: true,
                 createdAt: true,
                 updatedAt: true,
@@ -781,7 +781,7 @@ export const getAllStocksOut = async (req: Request, res: Response) => {
         let queryTable = {
             select: {
                 id: true,
-                stockOutCode: true,
+                transactionCode: true,
                 date: true,
                 createdAt: true,
                 updatedAt: true,
@@ -848,7 +848,7 @@ export const getAllStocksMutation = async (req: Request, res: Response) => {
         let queryTable = {
             select: {
                 id: true,
-                stockMutationCode: true,
+                transactionCode: true,
                 date: true,
                 createdAt: true,
                 updatedAt: true,
