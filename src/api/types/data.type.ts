@@ -1,8 +1,10 @@
-export interface IQuery {
+export interface IQuery<T = any, U = any> {
     take?: number;
     skip?: number;
-    select?: any;
-    orderBy?: any;
+    select?: T;
+    where?: any;
+    include?: any;
+    orderBy?: U;
 }
 
 export interface InsertUpdateQuery {

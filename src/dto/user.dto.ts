@@ -1,3 +1,5 @@
+import { QueryParams } from "./api.dto";
+
 export interface BodyCreateUser {
     name: string;
     username: string;
@@ -17,3 +19,9 @@ export interface BodyUpdateUser {
 }
 
 export type BodyUpdateProfile = Omit<BodyUpdateUser, 'role'>;
+
+export interface GetUserParams extends QueryParams {
+    role?: string;
+    updatedAt?: string;
+    createdAt?: string;
+}

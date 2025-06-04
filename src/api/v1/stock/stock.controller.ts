@@ -2,10 +2,484 @@ import { Request, Response } from "express";
 import { getPage, responseAPI, responseAPIData, responseAPITable, validateStockInPayload } from "../../utils";
 import { prismaClient } from "../../config";
 import { IQuery } from "../../types/data.type";
-import { BodyCreateStockIn, BodyCreateStockMutation, BodyCreateStockOut, BodyCreateStoreStock, BodyCreateWareHouseStock } from "../../../dto/stock.dto";
+import { BodyCreateStockIn, BodyCreateStockMutation, BodyCreateStockOut, BodyCreateStoreStock, BodyCreateWareHouseStock, GetStockInQueryParams, GetStockMutationParams, GetStockOutParams } from "../../../dto/stock.dto";
 import { QueryParams } from "../../dto";
 import { validateToken } from "../auth/auth.controller";
 import { validateStockMutationPayload, validateStockOutPayload } from "../../utils/validation";
+import { parseSort } from "../../utils/data.util";
+import { Prisma } from "@prisma/client";
+
+const filterStockIn = (queryParams: GetStockInQueryParams) => {
+    let where: Prisma.StockInWhereInput = {};
+
+    if (queryParams?.transactionCode) {
+        const transactionCode = JSON.parse(queryParams.transactionCode as string) as string[];
+        where.transactionCode = {
+            in: transactionCode.map(code => code.trim()),
+        }
+    }
+
+    if (queryParams?.productIds) {
+        const productIds = JSON.parse(queryParams.productIds as string) as number[];
+        where.StockInDetail = {
+            some: {
+                productId: {
+                    in: productIds.map(Number),
+                },
+            },
+        };
+    }
+
+    if (queryParams?.toStoreIds) {
+        const toStoreIds = JSON.parse(queryParams.toStoreIds as string) as number[];
+        where.toStore = {
+            id: {
+                in: toStoreIds.map(Number),
+            }
+        };
+    }
+
+    if (queryParams?.date) {
+        const date = JSON.parse(queryParams.date as string) as string[];
+        let tempDate: Prisma.DateTimeFilter = {};
+        if (date[0]) {
+            tempDate = {
+                gte: new Date(date[0]),
+            }
+        }
+        if (date[1]) {
+            tempDate = {
+                ...tempDate,
+                lte: new Date(date[1]),
+            }
+        }
+        where.date = tempDate;
+    }
+
+    if (queryParams?.quantity) {
+        const quantity = JSON.parse(queryParams.quantity as string) as number[];
+        let tempQuantity: Prisma.IntFilter = {};
+        if (quantity[0]) {
+            tempQuantity = {
+                gte: Number(quantity[0]),
+            }
+        }
+        if (quantity[1]) {
+            tempQuantity = {
+                ...tempQuantity,
+                lte: Number(quantity[1]),
+            }
+        }
+        where.StockInDetail = {
+            some: {
+                quantity: tempQuantity,
+            },
+        };
+    }
+
+    if (queryParams?.updatedAt) {
+        const updatedAt = JSON.parse(queryParams.updatedAt as string) as string[];
+        let tempUpdatedAt: Prisma.DateTimeFilter = {};
+        if (updatedAt[0]) {
+            tempUpdatedAt = {
+                gte: new Date(updatedAt[0]),
+            }
+        }
+        if (updatedAt[1]) {
+            tempUpdatedAt = {
+                ...tempUpdatedAt,
+                lte: new Date(updatedAt[1]),
+            }
+        }
+        where.updatedAt = tempUpdatedAt;
+    }
+
+    if (queryParams?.createdAt) {
+        const createdAt = JSON.parse(queryParams.createdAt as string) as string[];
+        let tempCreatedAt: Prisma.DateTimeFilter = {};
+        if (createdAt[0]) {
+            tempCreatedAt = {
+                gte: new Date(createdAt[0]),
+            }
+        }
+        if (createdAt[1]) {
+            tempCreatedAt = {
+                ...tempCreatedAt,
+                lte: new Date(createdAt[1]),
+            }
+        }
+        where.createdAt = tempCreatedAt;
+    }
+
+    if (queryParams?.search && queryParams.search.trim() !== "") {
+        const search = queryParams.search.trim();
+
+        where.OR = [
+            {
+                transactionCode: {
+                    contains: search,
+                    mode: "insensitive",
+                },
+            },
+            {
+                toStore: {
+                    name: {
+                        contains: search,
+                        mode: "insensitive",
+                    },
+                },
+            },
+            {
+                createdBy: {
+                    name: {
+                        contains: search,
+                        mode: "insensitive",
+                    },
+                },
+            },
+            {
+                updatedBy: {
+                    name: {
+                        contains: search,
+                        mode: "insensitive",
+                    },
+                },
+            },
+            {
+                StockInDetail: {
+                    some: {
+                        product: {
+                            name: {
+                                contains: search,
+                                mode: "insensitive",
+                            },
+                        },
+                    },
+                },
+            },
+        ];
+    }
+
+    return where;
+};
+
+const filterStockOut = (queryParams: GetStockOutParams) => {
+    let where: Prisma.StockOutWhereInput = {};
+
+    if (queryParams?.transactionCode) {
+        const transactionCode = JSON.parse(queryParams.transactionCode as string) as string[];
+        where.transactionCode = {
+            in: transactionCode.map(code => code.trim()),
+        }
+    }
+
+    if (queryParams?.productIds) {
+        const productIds = JSON.parse(queryParams.productIds as string) as number[];
+        where.StockOutDetail = {
+            some: {
+                productId: {
+                    in: productIds.map(Number),
+                },
+            },
+        };
+    }
+
+    if (queryParams?.storeIds) {
+        const storeIds = JSON.parse(queryParams.storeIds as string) as number[];
+        where.storeId = {
+            in: storeIds.map(Number),
+        };
+    }
+
+    if (queryParams?.date) {
+        const date = JSON.parse(queryParams.date as string) as string[];
+        let tempDate: Prisma.DateTimeFilter = {};
+        if (date[0]) {
+            tempDate = {
+                gte: new Date(date[0]),
+            }
+        }
+        if (date[1]) {
+            tempDate = {
+                ...tempDate,
+                lte: new Date(date[1]),
+            }
+        }
+        where.date = tempDate;
+    }
+
+    if (queryParams?.quantity) {
+        const quantity = JSON.parse(queryParams.quantity as string) as number[];
+        let tempQuantity: Prisma.IntFilter = {};
+        if (quantity[0]) {
+            tempQuantity = {
+                gte: Number(quantity[0]),
+            }
+        }
+        if (quantity[1]) {
+            tempQuantity = {
+                ...tempQuantity,
+                lte: Number(quantity[1]),
+            }
+        }
+        where.StockOutDetail = {
+            some: {
+                quantity: tempQuantity,
+            },
+        };
+    }
+
+    if (queryParams?.updatedAt) {
+        const updatedAt = JSON.parse(queryParams.updatedAt as string) as string[];
+        let tempUpdatedAt: Prisma.DateTimeFilter = {};
+        if (updatedAt[0]) {
+            tempUpdatedAt = {
+                gte: new Date(updatedAt[0]),
+            }
+        }
+        if (updatedAt[1]) {
+            tempUpdatedAt = {
+                ...tempUpdatedAt,
+                lte: new Date(updatedAt[1]),
+            }
+        }
+        where.updatedAt = tempUpdatedAt;
+    }
+
+    if (queryParams?.createdAt) {
+        const createdAt = JSON.parse(queryParams.createdAt as string) as string[];
+        let tempCreatedAt: Prisma.DateTimeFilter = {};
+        if (createdAt[0]) {
+            tempCreatedAt = {
+                gte: new Date(createdAt[0]),
+            }
+        }
+        if (createdAt[1]) {
+            tempCreatedAt = {
+                ...tempCreatedAt,
+                lte: new Date(createdAt[1]),
+            }
+        }
+        where.createdAt = tempCreatedAt;
+    }
+
+    if (queryParams?.search && queryParams.search.trim() !== "") {
+        const search = queryParams.search.trim();
+
+        where.OR = [
+            {
+                transactionCode: {
+                    contains: search,
+                    mode: "insensitive",
+                },
+            },
+            {
+                fromStore: {
+                    name: {
+                        contains: search,
+                        mode: "insensitive",
+                    },
+                },
+            },
+            {
+                createdBy: {
+                    name: {
+                        contains: search,
+                        mode: "insensitive",
+                    },
+                },
+            },
+            {
+                updatedBy: {
+                    name: {
+                        contains: search,
+                        mode: "insensitive",
+                    },
+                },
+            },
+            {
+                StockOutDetail: {
+                    some: {
+                        product: {
+                            name: {
+                                contains: search,
+                                mode: "insensitive",
+                            },
+                        },
+                    },
+                },
+            },
+        ]
+    }
+
+    return where;
+}
+
+const filterStockMutation = (queryParams: GetStockMutationParams) => {
+    let where: Prisma.StockMutationWhereInput = {};
+
+    if (queryParams?.transactionCode) {
+        const transactionCode = JSON.parse(queryParams.transactionCode as string) as string[];
+        where.transactionCode = {
+            in: transactionCode.map(code => code.trim()),
+        }
+    }
+
+    if (queryParams?.productIds) {
+        const productIds = JSON.parse(queryParams.productIds as string) as number[];
+        where.StockMutationDetail = {
+            some: {
+                productId: {
+                    in: productIds.map(Number),
+                },
+            },
+        };
+    }
+
+    if (queryParams?.fromStoreIds) {
+        const fromStoreIds = JSON.parse(queryParams.fromStoreIds as string) as number[];
+        where.fromStoreId = {
+            in: fromStoreIds.map(Number),
+        };
+    }
+
+    if (queryParams?.toStoreIds) {
+        const toStoreIds = JSON.parse(queryParams.toStoreIds as string) as number[];
+        where.toStoreId = {
+            in: toStoreIds.map(Number),
+        };
+    }
+
+    if (queryParams?.date) {
+        const date = JSON.parse(queryParams.date as string) as string[];
+        let tempDate: Prisma.DateTimeFilter = {};
+        if (date[0]) {
+            tempDate = {
+                gte: new Date(date[0]),
+            }
+        }
+        if (date[1]) {
+            tempDate = {
+                ...tempDate,
+                lte: new Date(date[1]),
+            }
+        }
+        where.date = tempDate;
+    }
+
+    if (queryParams?.quantity) {
+        const quantity = JSON.parse(queryParams.quantity as string) as number[];
+        let tempQuantity: Prisma.IntFilter = {};
+        if (quantity[0]) {
+            tempQuantity = {
+                gte: Number(quantity[0]),
+            }
+        }
+        if (quantity[1]) {
+            tempQuantity = {
+                ...tempQuantity,
+                lte: Number(quantity[1]),
+            }
+        }
+        where.StockMutationDetail = {
+            some: {
+                quantity: tempQuantity,
+            },
+        };
+    }
+
+    if (queryParams?.updatedAt) {
+        const updatedAt = JSON.parse(queryParams.updatedAt as string) as string[];
+        let tempUpdatedAt: Prisma.DateTimeFilter = {};
+        if (updatedAt[0]) {
+            tempUpdatedAt = {
+                gte: new Date(updatedAt[0]),
+            }
+        }
+        if (updatedAt[1]) {
+            tempUpdatedAt = {
+                ...tempUpdatedAt,
+                lte: new Date(updatedAt[1]),
+            }
+        }
+        where.updatedAt = tempUpdatedAt;
+    }
+    if (queryParams?.createdAt) {
+        const createdAt = JSON.parse(queryParams.createdAt as string) as string[];
+        let tempCreatedAt: Prisma.DateTimeFilter = {};
+        if (createdAt[0]) {
+            tempCreatedAt = {
+                gte: new Date(createdAt[0]),
+            }
+        }
+        if (createdAt[1]) {
+            tempCreatedAt = {
+                ...tempCreatedAt,
+                lte: new Date(createdAt[1]),
+            }
+        }
+        where.createdAt = tempCreatedAt;
+    }
+
+    if (queryParams?.search && queryParams.search.trim() !== "") {
+        const search = queryParams.search.trim();
+
+        where.OR = [
+            {
+                transactionCode: {
+                    contains: search,
+                    mode: "insensitive",
+                },
+            },
+            {
+                fromStore: {
+                    name: {
+                        contains: search,
+                        mode: "insensitive",
+                    },
+                },
+            },
+            {
+                toStore: {
+                    name: {
+                        contains: search,
+                        mode: "insensitive",
+                    },
+                },
+            },
+            {
+                createdBy: {
+                    name: {
+                        contains: search,
+                        mode: "insensitive",
+                    },
+                },
+            },
+            {
+                updatedBy: {
+                    name: {
+                        contains: search,
+                        mode: "insensitive",
+                    },
+                },
+            },
+            {
+                StockMutationDetail: {
+                    some: {
+                        product: {
+                            name: {
+                                contains: search,
+                                mode: "insensitive",
+                            },
+                        },
+                    },
+                },
+            },
+        ]
+    }
+
+    return where;
+}
 
 export const createStoreStock = async (req: Request, res: Response) => {
     try {
@@ -709,7 +1183,7 @@ export const getAllWarehouseStocks = async (req: Request, res: Response) => {
 
 export const getAllStocksIn = async (req: Request, res: Response) => {
     try {
-        const queryParams = req.query as QueryParams;
+        const queryParams = req.query as GetStockInQueryParams;
         let queryTable = {
             select: {
                 id: true,
@@ -745,6 +1219,27 @@ export const getAllStocksIn = async (req: Request, res: Response) => {
             }
         } as IQuery;
 
+        const orderBy = parseSort({
+            sortBy: queryParams.sortBy,
+            sortOrder: queryParams.sortOrder,
+        });
+
+        if (orderBy) {
+            queryTable = {
+                ...queryTable,
+                orderBy,
+            };
+        }
+
+        const filter = filterStockIn(queryParams);
+
+        if (filter && Object.keys(filter).length > 0) {
+            queryTable = {
+                ...queryTable,
+                where: filter,
+            };
+        }
+
         if (queryParams.page || queryParams.limit) {
             const paramPage = queryParams.page ? Number(queryParams.page) : 1;
             const paramLimit = queryParams.limit ? Number(queryParams.limit) : 10;
@@ -756,15 +1251,68 @@ export const getAllStocksIn = async (req: Request, res: Response) => {
             }
         }
 
-        const stocksIn = await prismaClient.stockIn.findMany(queryTable);
-        const totalRecords = await prismaClient.stockIn.count();
+        const stocksIn = await prismaClient.stockIn.findMany({
+            where: queryTable.where,
+            include: {
+                StockInDetail: {
+                    include: {
+                        product: {
+                            select: {
+                                id: true,
+                                name: true,
+                            }
+                        }
+                    }
+                },
+                createdBy: {
+                    select: {
+                        id: true,
+                        name: true,
+                    }
+                },
+                updatedBy: {
+                    select: {
+                        id: true,
+                        name: true,
+                    }
+                },
+                toStore: {
+                    select: {
+                        id: true,
+                        name: true,
+                    }
+                },
+            },
+            orderBy: queryTable.orderBy,
+        });
+        
+        const totalRecords = await prismaClient.stockIn.count({
+            where: queryTable.where,
+        });
+
+        const data = stocksIn.map((stock) => ({
+            id: stock.id,
+            transactionCode: stock.transactionCode,
+            date: stock.date,
+            createdAt: stock.createdAt,
+            updatedAt: stock.updatedAt,
+            toWarehouse: stock.toWarehouse,
+            toStore: stock.toStore,
+            createdBy: stock.createdBy,
+            updatedBy: stock.updatedBy,
+            products: stock.StockInDetail.map((detail) => ({
+                id: detail.productId,
+                quantity: detail.quantity,
+                name: detail.product.name,
+            })),
+        }))
 
         responseAPITable(res, {
             status: 200,
             message: "Stocks in retrieved successfully",
             data: {
                 totalRecords: totalRecords,
-                data: stocksIn,
+                data: data,
             }
         });
     } catch (error) {
@@ -777,7 +1325,7 @@ export const getAllStocksIn = async (req: Request, res: Response) => {
 
 export const getAllStocksOut = async (req: Request, res: Response) => {
     try {
-        const queryParams = req.query as QueryParams;
+        const queryParams = req.query as GetStockOutParams;
         let queryTable = {
             select: {
                 id: true,
@@ -812,6 +1360,27 @@ export const getAllStocksOut = async (req: Request, res: Response) => {
             }
         } as IQuery;
 
+        const orderBy = parseSort({
+            sortBy: queryParams.sortBy,
+            sortOrder: queryParams.sortOrder,
+        });
+
+        if (orderBy) {
+            queryTable = {
+                ...queryTable,
+                orderBy,
+            };
+        }
+
+        const filter = filterStockOut(queryParams);
+
+        if (filter && Object.keys(filter).length > 0) {
+            queryTable = {
+                ...queryTable,
+                where: filter,
+            };
+        }
+
         if (queryParams.page || queryParams.limit) {
             const paramPage = queryParams.page ? Number(queryParams.page) : 1;
             const paramLimit = queryParams.limit ? Number(queryParams.limit) : 10;
@@ -823,15 +1392,52 @@ export const getAllStocksOut = async (req: Request, res: Response) => {
             }
         }
 
-        const stocksOut = await prismaClient.stockOut.findMany(queryTable);
-        const totalRecords = await prismaClient.stockOut.count();
+        const stocksOut = await prismaClient.stockOut.findMany({
+            where: queryTable.where,
+            include: {
+                StockOutDetail: {
+                    include: {
+                        product: {
+                            select: {
+                                id: true,
+                                name: true,
+                            }
+                        }
+                    }
+                },
+                createdBy: true,
+                updatedBy: true,
+                fromStore: true,
+            },
+            orderBy: queryTable.orderBy,
+        });
+
+        const totalRecords = await prismaClient.stockOut.count({
+            where: queryTable.where,
+        });
+
+        const data = stocksOut.map((stock) => ({
+            id: stock.id,
+            transactionCode: stock.transactionCode,
+            date: stock.date,
+            createdAt: stock.createdAt,
+            updatedAt: stock.updatedAt,
+            fromStore: stock.fromStore,
+            createdBy: stock.createdBy,
+            updatedBy: stock.updatedBy,
+            products: stock.StockOutDetail.map((detail) => ({
+                id: detail.productId,
+                quantity: detail.quantity,
+                name: detail.product.name,
+            })),
+        }));
 
         responseAPITable(res, {
             status: 200,
             message: "Stocks out retrieved successfully",
             data: {
                 totalRecords: totalRecords,
-                data: stocksOut,
+                data: data,
             }
         });
     } catch (error) {
@@ -844,7 +1450,7 @@ export const getAllStocksOut = async (req: Request, res: Response) => {
 
 export const getAllStocksMutation = async (req: Request, res: Response) => {
     try {
-        const queryParams = req.query as QueryParams;
+        const queryParams = req.query as GetStockMutationParams;
         let queryTable = {
             select: {
                 id: true,
@@ -886,6 +1492,27 @@ export const getAllStocksMutation = async (req: Request, res: Response) => {
             }
         } as IQuery;
 
+        const orderBy = parseSort({
+            sortBy: queryParams.sortBy,
+            sortOrder: queryParams.sortOrder,
+        });
+
+        if (orderBy) {
+            queryTable = {
+                ...queryTable,
+                orderBy,
+            };
+        }
+
+        const filter = filterStockMutation(queryParams);
+
+        if (filter && Object.keys(filter).length > 0) {
+            queryTable = {
+                ...queryTable,
+                where: filter,
+            };
+        }
+
         if (queryParams.page || queryParams.limit) {
             const paramPage = queryParams.page ? Number(queryParams.page) : 1;
             const paramLimit = queryParams.limit ? Number(queryParams.limit) : 10;
@@ -897,15 +1524,74 @@ export const getAllStocksMutation = async (req: Request, res: Response) => {
             }
         }
 
-        const stocksMutation = await prismaClient.stockMutation.findMany(queryTable);
-        const totalRecords = await prismaClient.stockMutation.count();
+        const stocksMutation = await prismaClient.stockMutation.findMany({
+            where: queryTable.where,
+            include: {
+                StockMutationDetail: {
+                    include: {
+                        product: {
+                            select: {
+                                id: true,
+                                name: true,
+                            }
+                        }
+                    }
+                },
+                createdBy: {
+                    select: {
+                        id: true,
+                        name: true,
+                    }
+                },
+                updatedBy: {
+                    select: {
+                        id: true,
+                        name: true,
+                    }
+                },
+                fromStore: {
+                    select: {
+                        id: true,
+                        name: true,
+                    }
+                },
+                toStore: {
+                    select: {
+                        id: true,
+                        name: true,
+                    }
+                },
+            },
+            orderBy: queryTable.orderBy,
+        });
+        const totalRecords = await prismaClient.stockMutation.count({
+            where: queryTable.where,
+        });
+
+        const data = stocksMutation.map((stock) => ({
+            id: stock.id,
+            transactionCode: stock.transactionCode,
+            date: stock.date,
+            createdAt: stock.createdAt,
+            updatedAt: stock.updatedAt,
+            fromWarehouse: stock.fromWarehouse,
+            fromStore: stock.fromStore,
+            toStore: stock.toStore,
+            createdBy: stock.createdBy,
+            updatedBy: stock.updatedBy,
+            products: stock.StockMutationDetail.map((detail) => ({
+                id: detail.productId,
+                quantity: detail.quantity,
+                name: detail.product.name,
+            })),
+        }));
 
         responseAPITable(res, {
             status: 200,
             message: "Stocks mutation retrieved successfully",
             data: {
                 totalRecords: totalRecords,
-                data: stocksMutation,
+                data: data,
             }
         });
     } catch (error) {
