@@ -1,3 +1,5 @@
+import { QueryParams } from "./api.dto";
+
 export interface BodyCreateProduct {
     name: string;
     code: string;
@@ -21,4 +23,10 @@ export interface BodyUpdateProductUnit {
 
 export interface BodyDeleteProductData {
     id: number[];
+}
+
+export interface GetProductUnitParams extends QueryParams {
+    name?: string;
+    updateAt?: string;
+    createdAt?: string;
 }

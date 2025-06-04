@@ -1,4 +1,4 @@
-type StockIn = {
+export type StockIn = {
     id: string;
     quantity: number;
     storeId: string;
@@ -8,7 +8,7 @@ type StockIn = {
     updatedAt: Date | string;
 }
 
-type StockOut = {
+export type StockOut = {
     id: string;
     quantity: number;
     storeId: string;
@@ -18,7 +18,36 @@ type StockOut = {
     updatedAt: Date | string;
 }
 
-export {
-    StockIn,
-    StockOut,
+
+export interface GetStockInSelect {
+    id: true,
+    transactionCode: true,
+    date: true,
+    createdAt: true,
+    updatedAt: true,
+    toWarehouse: true,
+    toStore: {
+        select: {
+            id: true,
+            name: true,
+        }
+    },
+    createdBy: {
+        select: {
+            id: true,
+            name: true,
+        }
+    },
+    updatedBy: {
+        select: {
+            id: true,
+            name: true,
+        }
+    },
+    StockInDetail: {
+        select: {
+            productId: true,
+            quantity: true,
+        }
+    }
 }

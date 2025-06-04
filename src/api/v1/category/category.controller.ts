@@ -2,7 +2,6 @@ import { Request, Response } from "express";
 import { getPage, responseAPI, responseAPIData, responseAPITable } from "../../utils";
 import { prismaClient } from "../../config";
 import { QueryParams } from "../../dto";
-import { IQuery } from "../../types/data.type";
 import { validateToken } from "../auth/auth.controller";
 import { parseSort } from "../../utils/data.util";
 
@@ -184,70 +183,96 @@ export const updateCategory = async (req: Request, res: Response) => {
 }
 
 export const getAllCategory = async (req: Request, res: Response) => {
-    try {
-        const queryParams = req.query as QueryParams;
-        let queryTable = {
-            select: {
-                id: true,
-                name: true,
-                createdAt: true,
-                updatedAt: true,
-                createdBy: {
-                    select: {
-                        id: true,
-                        name: true,
-                    }
-                },
-                updatedBy: {
-                    select: {
-                        id: true,
-                        name: true,
-                    }
-                },
-            },
-        } as IQuery;
+  try {
+    const queryParams = req.query as QueryParams;
+    const search = queryParams.search?.toString().trim();
 
-        const orderBy = parseSort({
-            sortBy: queryParams.sortBy,
-            sortOrder: queryParams.sortOrder,
-        });
+    let where: any = {};
 
-        if (orderBy) {
-            queryTable = {
-                ...queryTable,
-                orderBy,
-            };
-        }
-
-       if (queryParams.page || queryParams.limit) {
-            const paramPage = queryParams.page ? Number(queryParams.page) : 1;
-            const paramLimit = queryParams.limit ? Number(queryParams.limit) : 10;
-            const page = getPage(paramPage,paramLimit);
-            queryTable = {
-                ...queryTable,
-                skip: page.skip,
-                take: page.take,
-            }
-        }
-
-        const categories = await prismaClient.category.findMany(queryTable);
-        const totalRecords = await prismaClient.category.count();
-
-        responseAPITable(res, {
-            status: 200,
-            message: "Categories fetched successfully",
-            data: {
-                totalRecords,
-                data: categories
-            }
-        });
-    } catch (error) {
-        responseAPI(res, {
-            status: 500,
-            message: "Internal server error",
-        });
+    // Search nama kategori (case-insensitive)
+    if (search) {
+      where.name = {
+        contains: search,
+        mode: 'insensitive',
+      };
     }
-}
+
+    // Filter createdAt
+    if (queryParams.createdAt) {
+      const createdAt = JSON.parse(queryParams.createdAt as string) as string[];
+      where.createdAt = {};
+      if (createdAt[0]) where.createdAt.gte = new Date(createdAt[0]);
+      if (createdAt[1]) where.createdAt.lte = new Date(createdAt[1]);
+    }
+
+    // Filter updatedAt
+    if (queryParams.updatedAt) {
+      const updatedAt = JSON.parse(queryParams.updatedAt as string) as string[];
+      where.updatedAt = {};
+      if (updatedAt[0]) where.updatedAt.gte = new Date(updatedAt[0]);
+      if (updatedAt[1]) where.updatedAt.lte = new Date(updatedAt[1]);
+    }
+
+    let queryTable: any = {
+      where,
+      select: {
+        id: true,
+        name: true,
+        createdAt: true,
+        updatedAt: true,
+        createdBy: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        updatedBy: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    };
+
+    // Sorting
+    const orderBy = parseSort({
+      sortBy: queryParams.sortBy,
+      sortOrder: queryParams.sortOrder,
+    });
+    if (orderBy) {
+      queryTable.orderBy = orderBy;
+    }
+
+    // Pagination
+    if (queryParams.page || queryParams.limit) {
+      const paramPage = queryParams.page ? Number(queryParams.page) : 1;
+      const paramLimit = queryParams.limit ? Number(queryParams.limit) : 10;
+      const page = getPage(paramPage, paramLimit);
+      queryTable.skip = page.skip;
+      queryTable.take = page.take;
+    }
+
+    // Fetch data
+    const categories = await prismaClient.category.findMany(queryTable);
+    const totalRecords = await prismaClient.category.count({ where });
+
+    responseAPITable(res, {
+      status: 200,
+      message: "Categories fetched successfully",
+      data: {
+        totalRecords,
+        data: categories,
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    responseAPI(res, {
+      status: 500,
+      message: "Internal server error",
+    });
+  }
+};
 
 export const getCategoryDropdown = async (_req: Request, res: Response) => {
     try {

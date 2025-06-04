@@ -2,7 +2,6 @@ import { Request, Response } from "express";
 import { getPage, responseAPI, responseAPIData, responseAPITable } from "../../utils";
 import { prismaClient } from "../../config";
 import { QueryParams } from "../../dto";
-import { IQuery } from "../../types/data.type";
 import { validateToken } from "../auth/auth.controller";
 import { parseSort } from "../../utils/data.util";
 
@@ -69,70 +68,96 @@ export const createRole = async (req: Request, response: Response) => {
 }
 
 export const getAllRole = async (req: Request, response: Response) => {
-    try {
-        const queryParams = req.query as QueryParams; // Adjust type as needed
-        let queryTable = {
-            select: {
-                id: true,
-                name: true,
-                createdAt: true,
-                updatedAt: true,
-                createdBy: {
-                    select: {
-                        id: true,
-                        name: true,
-                    }
-                },
-                updatedBy: {
-                    select: {
-                        id: true,
-                        name: true,
-                    }
-                },
-            },
-        } as IQuery;
+  try {
+    const queryParams = req.query as QueryParams;
+    const search = queryParams.search?.toString().trim();
 
-        const orderBy = parseSort({
-            sortBy: queryParams.sortBy,
-            sortOrder: queryParams.sortOrder,
-        });
-        
-        if (orderBy) {
-            queryTable = {
-                ...queryTable,
-                orderBy,
-            };
-        }
+    let where: any = {};
 
-        if (queryParams.page || queryParams.limit) {
-            const paramPage = queryParams.page ? Number(queryParams.page) : 1;
-            const paramLimit = queryParams.limit ? Number(queryParams.limit) : 10;
-            const page = getPage(paramPage,paramLimit);
-            queryTable = {
-                ...queryTable,
-                skip: page.skip,
-                take: page.take,
-            }
-        }
-
-        const roles = await prismaClient.role.findMany(queryTable);
-        const totalRecords = await prismaClient.role.count();
-
-        responseAPITable(response, {
-            status: 200,
-            message: "Roles retrieved successfully",
-            data: {
-                totalRecords,
-                data: roles,
-            },
-        });
-    } catch (error) {
-        responseAPI(response, {
-            status: 500,
-            message: "Internal server error",
-        });
+    // 🔍 Search by role name
+    if (search) {
+      where.name = {
+        contains: search,
+        mode: 'insensitive',
+      };
     }
-}
+
+    // 📆 Filter createdAt
+    if (queryParams.createdAt) {
+      const createdAt = JSON.parse(queryParams.createdAt as string) as string[];
+      where.createdAt = {};
+      if (createdAt[0]) where.createdAt.gte = new Date(createdAt[0]);
+      if (createdAt[1]) where.createdAt.lte = new Date(createdAt[1]);
+    }
+
+    // 📆 Filter updatedAt
+    if (queryParams.updatedAt) {
+      const updatedAt = JSON.parse(queryParams.updatedAt as string) as string[];
+      where.updatedAt = {};
+      if (updatedAt[0]) where.updatedAt.gte = new Date(updatedAt[0]);
+      if (updatedAt[1]) where.updatedAt.lte = new Date(updatedAt[1]);
+    }
+
+    let queryTable: any = {
+      where,
+      select: {
+        id: true,
+        name: true,
+        createdAt: true,
+        updatedAt: true,
+        createdBy: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        updatedBy: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    };
+
+    // 🔃 Sorting
+    const orderBy = parseSort({
+      sortBy: queryParams.sortBy,
+      sortOrder: queryParams.sortOrder,
+    });
+    if (orderBy) {
+      queryTable.orderBy = orderBy;
+    }
+
+    // 📄 Pagination
+    if (queryParams.page || queryParams.limit) {
+      const paramPage = queryParams.page ? Number(queryParams.page) : 1;
+      const paramLimit = queryParams.limit ? Number(queryParams.limit) : 10;
+      const page = getPage(paramPage, paramLimit);
+      queryTable.skip = page.skip;
+      queryTable.take = page.take;
+    }
+
+    // 📥 Fetch data
+    const roles = await prismaClient.role.findMany(queryTable);
+    const totalRecords = await prismaClient.role.count({ where });
+
+    responseAPITable(response, {
+      status: 200,
+      message: 'Roles retrieved successfully',
+      data: {
+        totalRecords,
+        data: roles,
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    responseAPI(response, {
+      status: 500,
+      message: 'Internal server error',
+    });
+  }
+};
 
 export const updateRole = async (req: Request, res: Response) => {
     try {

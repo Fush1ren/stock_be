@@ -1,4 +1,5 @@
 import { StatusProduct } from "@prisma/client";
+import { QueryParams } from "./api.dto";
 
 export interface BodyCreateStoreStock {
     quantity: number;
@@ -37,4 +38,36 @@ export interface BodyCreateStockMutation {
     fromStoreId: number | null;
     toStoreId: number;
     products: ProductStockMutation[];
+}
+
+
+export interface GetStockInQueryParams extends QueryParams {
+    transactionCode?: string;
+    toStoreIds?: string;
+    productIds?: string;
+    date?: string;
+    quantity?: string;
+    updatedAt?: string;
+    createdAt?: string;
+}
+
+export interface GetStockOutParams extends QueryParams {
+    transactionCode?: string;
+    storeIds?: string;
+    productIds?: string;
+    date?: string;
+    quantity?: string;
+    updatedAt?: string;
+    createdAt?: string;
+}
+
+export interface GetStockMutationParams extends QueryParams {
+    transactionCode?: string;
+    fromStoreIds?: string;
+    toStoreIds?: string;
+    productIds?: string;
+    date?: string;
+    quantity?: string;
+    updatedAt?: string;
+    createdAt?: string;
 }

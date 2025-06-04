@@ -1,10 +1,10 @@
 import { Request, Response } from "express";
 import { prismaClient } from "../../config";
-import { QueryParams } from "../../dto";
 import { getPage, responseAPI, responseAPIData, responseAPITable } from "../../utils";
-import { IQuery } from "../../types/data.type";
 import { validateToken } from "../auth/auth.controller";
 import { parseSort } from "../../utils/data.util";
+import { GetStoreParams } from "../../../dto/store.dto";
+import { Prisma } from "@prisma/client";
 
 export const createStore = async (req: Request, res: Response) => {
     try {
@@ -73,8 +73,64 @@ export const createStore = async (req: Request, res: Response) => {
 
 export const getAllStore = async (req: Request, res: Response) => {
     try {
-        const queryParams = req.query as QueryParams;
-        let queryTable = {
+        const queryParams = req.query as GetStoreParams;
+        
+        // Definisikan where secara terpisah agar lebih fleksibel
+        let where: Prisma.StoreWhereInput = {};
+
+        // Filter nama berdasarkan queryParams.name (array of exact match)
+        if (queryParams.name) {
+            const names = JSON.parse(queryParams.name as string) as string[];
+            if (Array.isArray(names) && names.length > 0) {
+                where.OR = names.map(name => ({
+                    name: {
+                        equals: name.trim(),
+                        mode: 'insensitive',
+                    }
+                }));
+            }
+        }
+
+        // Filter nama berdasarkan search string (contains, case-insensitive)
+        if (queryParams.search) {
+            const search = queryParams.search.toString().trim();
+            if (search.length > 0) {
+                where.name = {
+                    contains: search,
+                    mode: 'insensitive',
+                };
+            }
+        }
+
+        // Filter createdAt
+        if (queryParams.createdAt) {
+            const createdAt = JSON.parse(queryParams.createdAt) as string[];
+            let createdAtQuery: Prisma.DateTimeFilter = {};
+            if (createdAt[0]) {
+                createdAtQuery.gte = new Date(createdAt[0]);
+            }
+            if (createdAt[1]) {
+                createdAtQuery.lte = new Date(createdAt[1]);
+            }
+            where.createdAt = createdAtQuery;
+        }
+
+        // Filter updatedAt
+        if (queryParams.updatedAt) {
+            const updatedAt = JSON.parse(queryParams.updatedAt) as string[];
+            let updatedAtQuery: Prisma.DateTimeFilter = {};
+            if (updatedAt[0]) {
+                updatedAtQuery.gte = new Date(updatedAt[0]);
+            }
+            if (updatedAt[1]) {
+                updatedAtQuery.lte = new Date(updatedAt[1]);
+            }
+            where.updatedAt = updatedAtQuery;
+        }
+
+        // Siapkan queryTable
+        let queryTable: Prisma.StoreFindManyArgs = {
+            where,
             select: {
                 id: true,
                 name: true,
@@ -84,58 +140,57 @@ export const getAllStore = async (req: Request, res: Response) => {
                     select: {
                         id: true,
                         name: true,
-                    }
+                    },
                 },
                 updatedBy: {
                     select: {
                         id: true,
                         name: true,
-                    }
+                    },
                 },
-            }
-        } as IQuery;
+            },
+        };
 
+        // Sort
         const orderBy = parseSort({
             sortBy: queryParams.sortBy,
             sortOrder: queryParams.sortOrder,
         });
 
         if (orderBy) {
-            queryTable = {
-                ...queryTable,
-                orderBy,
-            };
-        }   
+            queryTable.orderBy = orderBy;
+        }
 
+        // Pagination
         if (queryParams.page || queryParams.limit) {
             const paramPage = queryParams.page ? Number(queryParams.page) : 1;
             const paramLimit = queryParams.limit ? Number(queryParams.limit) : 10;
-            const page = getPage(paramPage,paramLimit);
-            queryTable = {
-                ...queryTable,
-                skip: page.skip,
-                take: page.take,
-            }
+            const page = getPage(paramPage, paramLimit);
+            queryTable.skip = page.skip;
+            queryTable.take = page.take;
         }
 
         const stores = await prismaClient.store.findMany(queryTable);
-        const totalRecords = await prismaClient.store.count();
+        const totalRecords = await prismaClient.store.count({
+            where,
+        });
 
         responseAPITable(res, {
             status: 200,
             message: "Stores retrieved successfully",
             data: {
-                totalRecords: totalRecords,
+                totalRecords,
                 data: stores,
             }
         });
     } catch (error) {
+        console.error(error);
         responseAPI(res, {
             status: 500,
             message: "Internal server error",
-        })
+        });
     }
-}
+};
 
 export const getStoreById = async (req: Request, res: Response) => {
     try {

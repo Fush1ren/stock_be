@@ -1,11 +1,10 @@
 import { Request, Response } from "express";
 import { getPage, responseAPI, responseAPIData } from "../../utils";
 import { prismaClient } from "../../config";
-import { QueryParams } from "../../dto";
-import { IQuery } from "../../types/data.type";
 import { validateToken } from "../auth/auth.controller";
-import { BodyDeleteProductData, BodyUpdateProductUnit } from "../../../dto/product.dto";
+import { BodyDeleteProductData, BodyUpdateProductUnit, GetProductUnitParams } from "../../../dto/product.dto";
 import { parseSort } from "../../utils/data.util";
+import { Prisma } from "@prisma/client";
 
 export const createUnit = async (req: Request, res: Response) => {
     try {
@@ -178,9 +177,65 @@ export const deleteUnit = async (req: Request, res: Response) => {
 
 export const getAllUnit = async (req: Request, res: Response) => {
     try {
-        const queryParams = req.query as QueryParams;
-        let queryTable = {
-             select: {
+        const queryParams = req.query as GetProductUnitParams;
+
+        // Definisikan filter where
+        let where: Prisma.UnitWhereInput = {};
+
+        // Filter name (array exact match, insensitive)
+        if (queryParams.name) {
+            const names = JSON.parse(queryParams.name as string) as string[];
+            if (Array.isArray(names) && names.length > 0) {
+                where.OR = names.map(name => ({
+                    name: {
+                        equals: name.trim(),
+                        mode: 'insensitive',
+                    },
+                }));
+            }
+        }
+
+        // Filter search (contains, insensitive)
+        if (queryParams.search) {
+            const search = queryParams.search.toString().trim();
+            if (search.length > 0) {
+                where.name = {
+                    contains: search,
+                    mode: 'insensitive',
+                };
+            }
+        }
+
+        // Filter createdAt (range)
+        if (queryParams.createdAt) {
+            const createdAt = JSON.parse(queryParams.createdAt) as string[];
+            let createdAtQuery: Prisma.DateTimeFilter = {};
+            if (createdAt[0]) {
+                createdAtQuery.gte = new Date(createdAt[0]);
+            }
+            if (createdAt[1]) {
+                createdAtQuery.lte = new Date(createdAt[1]);
+            }
+            where.createdAt = createdAtQuery;
+        }
+
+        // Filter updatedAt (range)
+        if (queryParams.updatedAt) {
+            const updatedAt = JSON.parse(queryParams.updatedAt) as string[];
+            let updatedAtQuery: Prisma.DateTimeFilter = {};
+            if (updatedAt[0]) {
+                updatedAtQuery.gte = new Date(updatedAt[0]);
+            }
+            if (updatedAt[1]) {
+                updatedAtQuery.lte = new Date(updatedAt[1]);
+            }
+            where.updatedAt = updatedAtQuery;
+        }
+
+        // Bangun query
+        let queryTable: Prisma.UnitFindManyArgs = {
+            where,
+            select: {
                 id: true,
                 name: true,
                 createdAt: true,
@@ -189,41 +244,40 @@ export const getAllUnit = async (req: Request, res: Response) => {
                     select: {
                         id: true,
                         name: true,
-                    }
+                    },
                 },
                 updatedBy: {
                     select: {
                         id: true,
                         name: true,
-                    }
-                }
-             }
-        } as IQuery;
+                    },
+                },
+            },
+        };
 
+        // Sort
         const orderBy = parseSort({
             sortBy: queryParams.sortBy,
             sortOrder: queryParams.sortOrder,
         });
 
         if (orderBy) {
-            queryTable = {
-                ...queryTable,
-                orderBy,
-            };
+            queryTable.orderBy = orderBy;
         }
 
-         if (queryParams.page || queryParams.limit) {
+        // Pagination
+        if (queryParams.page || queryParams.limit) {
             const paramPage = queryParams.page ? Number(queryParams.page) : 1;
             const paramLimit = queryParams.limit ? Number(queryParams.limit) : 10;
-            const page = getPage(paramPage,paramLimit);
-            queryTable = {
-                ...queryTable,
-                skip: page.skip,
-                take: page.take,
-            }
+            const page = getPage(paramPage, paramLimit);
+            queryTable.skip = page.skip;
+            queryTable.take = page.take;
         }
+
+        // Query data
         const units = await prismaClient.unit.findMany(queryTable);
-        const totalRecords = await prismaClient.unit.count();
+        const totalRecords = await prismaClient.unit.count({ where });
+
         responseAPIData(res, {
             status: 200,
             message: 'Units retrieved successfully',
@@ -233,12 +287,13 @@ export const getAllUnit = async (req: Request, res: Response) => {
             },
         });
     } catch (error) {
+        console.error(error);
         responseAPI(res, {
             status: 500,
             message: 'Internal server error',
         });
     }
-}
+};
 
 export const getUnitDropdown = async (_req: Request, res: Response) => {
     try {
