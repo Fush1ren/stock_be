@@ -26,7 +26,7 @@ export const createBrand = async (req: Request, res: Response) => {
             });
         }
 
-        const existingBrand = await prismaClient.brand.findUnique({
+        const existingBrand = await prismaClient.brand.findFirst({
             where: {
                 name: body.name.trim(),
             },

@@ -27,7 +27,7 @@ export const createStore = async (req: Request, res: Response) => {
             });
         }
 
-        const existingStore = await prismaClient.store.findUnique({
+        const existingStore = await prismaClient.store.findFirst({
             where: {
                 name: name,
             },

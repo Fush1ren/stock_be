@@ -26,7 +26,7 @@ export const createCategory = async (req: Request, res: Response) => {
             });
         }
 
-        const existingCategory = await prismaClient.category.findUnique({
+        const existingCategory = await prismaClient.category.findFirst({
             where: {
                 name: name,
             },
