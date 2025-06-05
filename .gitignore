@@ -141,3 +141,4 @@ test3.js.txt
 test4.js.txt
 
 schema.prisma.txt
+*.txt

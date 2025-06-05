@@ -18,11 +18,12 @@ model Role {
     name      String @unique @db.VarChar(25)
     createdAt DateTime @default(now()) @db.Timestamptz()
     updatedAt DateTime @updatedAt @db.Timestamptz()
-    createdById Int @db.Integer
-    updatedById Int @db.Integer
+    // isDeleted  Boolean @default(false)
+    createdById Int? @db.Integer
+    updatedById Int? @db.Integer
 
-    createdBy  User     @relation("RoleCreatedBy", fields: [createdById], references: [id])
-    updatedBy  User     @relation("RoleUpdatedBy", fields: [updatedById], references: [id])
+    createdBy  User?     @relation("RoleCreatedBy", fields: [createdById], references: [id])
+    updatedBy  User?     @relation("RoleUpdatedBy", fields: [updatedById], references: [id])
 
     users     User[]   @relation("RoleUsers")
     @@map("role")
@@ -35,13 +36,13 @@ model User {
     email     String @unique @db.VarChar(50)
     password  String @db.VarChar(100)
     photo     String? @db.Text
-    // photo     Bytes? @db.ByteA
+    // isDeleted  Boolean @default(false)
     refreshToken String? @db.VarChar(100)
     createdAt DateTime @default(now()) @db.Timestamptz()
     updatedAt DateTime @updatedAt @db.Timestamptz()
 
-    createdById Int @db.Integer
-    updatedById Int @db.Integer
+    createdById Int? @db.Integer
+    updatedById Int? @db.Integer
     roleId   Int @db.Integer
 
     createdRoles Role[] @relation("RoleCreatedBy")
@@ -69,20 +70,21 @@ model User {
     WareHouseStockCreated WareHouseStock[] @relation("WareHouseStockCreatedBy")
     WareHouseStockUpdated WareHouseStock[] @relation("WareHouseStockUpdatedBy")
     
-    createdBy  User @relation("UserCreatedBy", fields: [createdById], references: [id])
-    updatedBy  User @relation("UserUpdatedBy", fields: [updatedById], references: [id])
+    createdBy  User? @relation("UserCreatedBy", fields: [createdById], references: [id])
+    updatedBy  User? @relation("UserUpdatedBy", fields: [updatedById], references: [id])
     roles     Role @relation("RoleUsers", fields: [roleId], references: [id])
     @@map("user")
 }
 
 model Store {
     id        Int   @id @default(autoincrement()) @db.Integer
-    name      String @db.VarChar(25) @unique
+    name      String @db.VarChar(25)
     createdAt DateTime @default(now()) @db.Timestamptz()
     updatedAt DateTime @updatedAt @db.Timestamptz()
+    // isDeleted Boolean @default(false)
 
-    createdById Int @db.Integer
-    updatedById Int @db.Integer
+    createdById Int? @db.Integer
+    updatedById Int? @db.Integer
 
     StoreStock StoreStock[]
     StockIn StockIn[]
@@ -90,23 +92,23 @@ model Store {
     fromStore StockMutation[] @relation("fromStore")
     toStore StockMutation[] @relation("toStore")
     
-    createdBy  User @relation("StoreCreatedBy", fields: [createdById], references: [id])
-    updatedBy User @relation("StoreUpdatedBy", fields: [updatedById], references: [id])
+    createdBy  User? @relation("StoreCreatedBy", fields: [createdById], references: [id])
+    updatedBy User? @relation("StoreUpdatedBy", fields: [updatedById], references: [id])
     @@map("store")
 }
 
 model Unit {
     id        Int   @id @default(autoincrement()) @db.Integer
-    name      String @db.VarChar(25) @unique
+    name      String @db.VarChar(25)
+    // isDeleted  Boolean @default(false)
     createdAt DateTime @default(now()) @db.Timestamptz()
     updatedAt DateTime @updatedAt @db.Timestamptz()
 
-    createdById Int @db.Integer
-    updatedById Int @db.Integer
+    createdById Int? @db.Integer
+    updatedById Int? @db.Integer
 
-    createdBy  User @relation("UnitCreatedBy", fields: [createdById], references: [id])
-    updatedBy User @relation("UnitUpdatedBy", fields: [updatedById], references: [id])
-
+    createdBy User? @relation("UnitCreatedBy", fields: [createdById], references: [id])
+    updatedBy User? @relation("UnitUpdatedBy", fields: [updatedById], references: [id])
 
     Products Product[]
     @@map("unit")
@@ -114,15 +116,16 @@ model Unit {
 
 model Brand {
     id        Int   @id @default(autoincrement()) @db.Integer
-    name      String @db.VarChar(30) @unique
+    name      String @db.VarChar(30)
+    // isDeleted Boolean @default(false)
     createdAt DateTime @default(now()) @db.Timestamptz()
     updatedAt DateTime @updatedAt @db.Timestamptz()
 
-    createdById Int @db.Integer
-    updatedById Int @db.Integer
+    createdById Int? @db.Integer
+    updatedById Int? @db.Integer
 
-    createdBy  User @relation("BrandCreatedBy", fields: [createdById], references: [id])
-    updatedBy User @relation("BrandUpdatedBy", fields: [updatedById], references: [id])
+    createdBy User? @relation("BrandCreatedBy", fields: [createdById], references: [id])
+    updatedBy User? @relation("BrandUpdatedBy", fields: [updatedById], references: [id])
 
     Products Product[]
     @@map("brand")
@@ -130,15 +133,16 @@ model Brand {
 
 model Category {
     id        Int   @id @default(autoincrement()) @db.Integer
-    name      String @db.VarChar(50) @unique
+    name      String @db.VarChar(50)
+    // isDeleted Boolean @default(false)
     createdAt DateTime @default(now()) @db.Timestamptz()
     updatedAt DateTime @updatedAt @db.Timestamptz()
 
-    createdById Int @db.Integer
-    updatedById Int @db.Integer
+    createdById Int? @db.Integer
+    updatedById Int? @db.Integer
 
-    createdBy  User @relation("CategoryCreatedBy", fields: [createdById], references: [id])
-    updatedBy User @relation("CategoryUpdatedBy", fields: [updatedById], references: [id])
+    createdBy User? @relation("CategoryCreatedBy", fields: [createdById], references: [id])
+    updatedBy User? @relation("CategoryUpdatedBy", fields: [updatedById], references: [id])
 
     Products Product[]
     @@map("category")
@@ -147,22 +151,23 @@ model Category {
 model Product {
     id        Int   @id @default(autoincrement()) @db.Integer
     name      String @db.VarChar(50)
+    // isDeleted  Boolean @default(false)
     code String @unique @db.VarChar(30)
     description String? @db.VarChar(100)
     createdAt DateTime @default(now()) @db.Timestamptz()
     updatedAt DateTime @updatedAt @db.Timestamptz()
 
     unitId Int @db.Integer
-    createdById Int @db.Integer
-    updatedById Int @db.Integer
+    createdById Int? @db.Integer
+    updatedById Int? @db.Integer
     categoryId Int @db.Integer
     brandId Int @db.Integer
 
     unit Unit @relation(fields: [unitId], references: [id])
     category Category @relation(fields: [categoryId], references: [id])
     brand Brand @relation(fields: [brandId], references: [id])
-    createdBy  User @relation("ProductCreatedBy", fields: [createdById], references: [id])
-    updatedBy User @relation("ProductUpdatedBy", fields: [updatedById], references: [id])
+    createdBy User? @relation("ProductCreatedBy", fields: [createdById], references: [id])
+    updatedBy User? @relation("ProductUpdatedBy", fields: [updatedById], references: [id])
     
     Stock StoreStock[]
     StockInDetail StockInDetail[]
@@ -176,19 +181,19 @@ model StoreStock {
     id        Int   @id @default(autoincrement()) @db.Integer
     quantity  Int   @db.Integer
     threshold Int @default(0) @db.Integer
-    status StatusProduct
+    status    StatusProduct
     createdAt DateTime @default(now()) @db.Timestamptz()
     updatedAt DateTime @updatedAt @db.Timestamptz()
 
-    createdById Int @db.Integer
-    updatedById Int @db.Integer
+    createdById Int? @db.Integer
+    updatedById Int? @db.Integer
     productId Int @db.Integer
     storeId Int @db.Integer
 
     store Store @relation(fields: [storeId], references: [id])
     product Product @relation(fields: [productId], references: [id])
-    createdBy  User @relation("StockCreatedBy", fields: [createdById], references: [id])
-    updatedBy User @relation("StockUpdatedBy", fields: [updatedById], references: [id])
+    createdBy User? @relation("StockCreatedBy", fields: [createdById], references: [id])
+    updatedBy User? @relation("StockUpdatedBy", fields: [updatedById], references: [id])
 
     @@unique([storeId, productId])
     @@map("stock")
@@ -202,13 +207,13 @@ model WareHouseStock {
     createdAt DateTime @default(now()) @db.Timestamptz()
     updatedAt DateTime @updatedAt @db.Timestamptz()
 
-    createdById Int @db.Integer
-    updatedById Int @db.Integer
+    createdById Int? @db.Integer
+    updatedById Int? @db.Integer
     productId Int @db.Integer
 
     product Product @relation(fields: [productId], references: [id])
-    createdBy  User @relation("WareHouseStockCreatedBy", fields: [createdById], references: [id])
-    updatedBy User @relation("WareHouseStockUpdatedBy", fields: [updatedById], references: [id])
+    createdBy User? @relation("WareHouseStockCreatedBy", fields: [createdById], references: [id])
+    updatedBy User? @relation("WareHouseStockUpdatedBy", fields: [updatedById], references: [id])
 
     @@map("warehouse_stock")
 }
@@ -221,16 +226,16 @@ model StockIn {
     updatedAt DateTime @updatedAt @db.Timestamptz()
     toWarehouse Boolean @default(false)
 
-    createdById Int @db.Integer
-    updatedById Int @db.Integer
+    createdById Int? @db.Integer
+    updatedById Int? @db.Integer
     storeId Int? @db.Integer
 
     StockInDetail StockInDetail[]
 
 
     toStore Store? @relation(fields: [storeId], references: [id])
-    createdBy User @relation("StockInCreatedBy", fields: [createdById], references: [id])
-    updatedBy User @relation("StockInUpdatedBy", fields: [updatedById], references: [id])
+    createdBy User? @relation("StockInCreatedBy", fields: [createdById], references: [id])
+    updatedBy User? @relation("StockInUpdatedBy", fields: [updatedById], references: [id])
 
     @@map("stock_in")
 }
@@ -255,15 +260,15 @@ model StockOut {
     createdAt DateTime @default(now()) @db.Timestamptz()
     updatedAt DateTime @updatedAt @db.Timestamptz()
 
-    createdById Int @db.Integer
-    updatedById Int @db.Integer
+    createdById Int? @db.Integer
+    updatedById Int? @db.Integer
     storeId Int @db.Integer
 
     StockOutDetail StockOutDetail[]
 
     fromStore Store @relation(fields: [storeId], references: [id])
-    createdBy  User @relation("StockOutCreatedBy", fields: [createdById], references: [id])
-    updatedBy User @relation("StockOutUpdatedBy", fields: [updatedById], references: [id])
+    createdBy User? @relation("StockOutCreatedBy", fields: [createdById], references: [id])
+    updatedBy User? @relation("StockOutUpdatedBy", fields: [updatedById], references: [id])
 
     @@map("stock_out")
 }
@@ -289,8 +294,8 @@ model StockMutation {
     createdAt DateTime @default(now()) @db.Timestamptz()
     updatedAt DateTime @updatedAt @db.Timestamptz()
 
-    createdById Int @db.Integer
-    updatedById Int @db.Integer
+    createdById Int? @db.Integer
+    updatedById Int? @db.Integer
     fromStoreId Int? @db.Integer
     toStoreId Int @db.Integer
 
@@ -298,8 +303,8 @@ model StockMutation {
 
     fromStore Store? @relation("fromStore", fields: [fromStoreId], references: [id])
     toStore Store @relation("toStore", fields: [toStoreId], references: [id])
-    createdBy  User @relation("StockMutationCreatedBy", fields: [createdById], references: [id])
-    updatedBy User @relation("StockMutationUpdatedBy", fields: [updatedById], references: [id])
+    createdBy User? @relation("StockMutationCreatedBy", fields: [createdById], references: [id])
+    updatedBy User? @relation("StockMutationUpdatedBy", fields: [updatedById], references: [id])
 
     @@map("stock_mutation")
 }
